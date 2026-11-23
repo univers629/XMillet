@@ -311,7 +311,6 @@ fun PolicyTemplatesScreenMiuix(
         onBack = onBack,
         actions = {
             IconButton(
-                modifier = Modifier.padding(end = 12.dp),
                 onClick = { showEditor = true }
             ) {
                 Icon(
@@ -513,7 +512,6 @@ fun PolicyTemplateDetailScreenMiuix(
             if (!template.builtIn) {
                 val showTopPopup = remember { mutableStateOf(false) }
                 BarIconButton(
-                    modifier = Modifier.padding(end = 12.dp),
                     onClick = { showTopPopup.value = true },
                     holdDownState = showTopPopup.value
                 ) {

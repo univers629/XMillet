@@ -202,7 +202,6 @@ fun CloudWhitelistScreenMiuix(
         onBack = onBack,
         actions = {
             IconButton(
-                modifier = Modifier.padding(end = 12.dp),
                 onClick = onRefresh,
                 enabled = !isRefreshing
             ) {

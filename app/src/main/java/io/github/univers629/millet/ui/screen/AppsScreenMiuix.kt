@@ -234,7 +234,6 @@ fun AppsScreenMiuix(
                     actions = {
                         val showTopPopup = remember { mutableStateOf(false) }
                         BarIconButton(
-                            modifier = Modifier.padding(end = 12.dp),
                             onClick = { showTopPopup.value = true },
                             holdDownState = showTopPopup.value
                         ) {

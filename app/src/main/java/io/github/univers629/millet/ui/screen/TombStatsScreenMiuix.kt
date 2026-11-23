@@ -791,7 +791,6 @@ fun TombStatsScreenMiuix(
                             )
                         }
                         BarIconButton(
-                            modifier = Modifier.padding(end = 12.dp),
                             onClick = { showTopPopup = true },
                             holdDownState = showTopPopup,
                         ) {
