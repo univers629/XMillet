@@ -2,12 +2,6 @@ package io.github.univers629.millet.ui.util
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.height
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.layout.boundsInWindow
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
@@ -16,10 +10,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import top.yukonga.miuix.kmp.utils.MiuixPopupUtils.Companion.PopupLayout
-import top.yukonga.miuix.kmp.glass.GlassPopup
 import top.yukonga.miuix.kmp.glass.GlassPopupItem
+import top.yukonga.miuix.kmp.glass.GlassPopupAnchor
+import top.yukonga.miuix.kmp.glass.GlassTransformPopup
+import top.yukonga.miuix.kmp.glass.rememberGlassPopupAnchor
+import top.yukonga.miuix.kmp.glass.glassPopupAnchor
+import top.yukonga.miuix.kmp.glass.glassPopupAnchorContent
 import kotlinx.coroutines.delay
-import kotlin.math.abs
 
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.runtime.Composable
@@ -110,12 +107,16 @@ fun MilletSmallTopAppBar(
     defaultWindowInsetsPadding = defaultWindowInsetsPadding,
 )
 
-/** 最近一次点击的顶栏按钮边界（窗口坐标，已扣除外边距），供紧随其后的玻璃菜单锚定。 */
-internal object BarButtonAnchor {
-    var lastClicked: Rect = Rect.Zero
+/** 顶栏按钮与紧随其后的菜单之间共享的 Miuix 锚点（首次组合时按调用顺序配对）。 */
+internal class BarPopupAnchorEntry(val anchor: GlassPopupAnchor) {
+    var icon: @Composable () -> Unit by mutableStateOf({})
 }
 
-/** 顶栏玻璃按钮（替代 IconButton，保留旧参数签名）。点击时记录自身真实边界作为菜单锚点。 */
+internal object BarPopupAnchorRegistry {
+    var last: BarPopupAnchorEntry? = null
+}
+
+/** 顶栏玻璃按钮（替代 IconButton，保留旧参数签名）。挂 Miuix [glassPopupAnchor]，菜单展开/收起由库负责。 */
 @Composable
 fun BarIconButton(
     onClick: () -> Unit,
@@ -128,24 +129,22 @@ fun BarIconButton(
     minWidth: Dp = 0.dp,
     content: @Composable () -> Unit,
 ) {
-    val bounds = remember { arrayOf(Rect.Zero) }
+    val anchor = rememberGlassPopupAnchor()
+    val entry = remember(anchor) { BarPopupAnchorEntry(anchor) }
+    entry.icon = content
+    BarPopupAnchorRegistry.last = entry
     GlassIconButton(
-        onClick = {
-            if (enabled) {
-                BarButtonAnchor.lastClicked = bounds[0]
-                onClick()
-            }
-        },
-        // 接在调用方 padding 之后：得到按钮本体边界（不含 end 边距，也不受按压缩放影响）。
-        modifier = modifier.onGloballyPositioned { bounds[0] = it.boundsInWindow() },
-        content = content,
-    )
+        onClick = { if (enabled) onClick() },
+        modifier = modifier.glassPopupAnchor(anchor, cornerRadius = GlassTopAppBarDefaults.ButtonSize / 2),
+    ) {
+        Box(modifier = Modifier.glassPopupAnchorContent(anchor)) { content() }
+    }
 }
 
 /**
  * OS4 玻璃菜单：替代 OverlayListPopup，保留原调用签名（定位参数忽略）。
- * 锚点取触发按钮的真实边界，弹出与收纳都以该按钮为原点；每次打开时锁定一次，收起沿用同一锚点。
- * 必须紧跟在触发按钮之后调用：这里的 0 宽占位用于校验点击来源，并在无记录时兜底估算。
+ * 使用 Miuix [GlassTransformPopup]：从触发按钮变形展开，收起时缩回按钮本身。
+ * 必须紧跟在 [BarIconButton] 之后调用，以取得该按钮的锚点。
  */
 @Composable
 fun GlassOverlayListPopup(
@@ -155,31 +154,14 @@ fun GlassOverlayListPopup(
     onDismissRequest: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
-    val density = LocalDensity.current
-    val slot = remember { arrayOf(Rect.Zero) }
-    Box(
-        modifier = Modifier
-            .width(0.dp)
-            .height(40.dp)
-            .onGloballyPositioned { slot[0] = it.boundsInWindow() }
-    )
-    val anchor = remember { arrayOf(Rect.Zero) }
-    val wasShown = remember { booleanArrayOf(false) }
-    if (show && !wasShown[0]) {
-        anchor[0] = resolveMenuAnchor(
-            clicked = BarButtonAnchor.lastClicked,
-            slot = slot[0],
-            fallbackSize = with(density) { 40.dp.toPx() },
-            tolerance = with(density) { 64.dp.toPx() },
-        )
-    }
-    wasShown[0] = show
+    val entry = remember { BarPopupAnchorRegistry.last ?: BarPopupAnchorEntry(GlassPopupAnchor()) }
     val mounted = remember { mutableStateOf(false) }
     LaunchedEffect(show) {
         if (show) {
             mounted.value = true
         } else if (mounted.value) {
-            delay(450)
+            // 等库内收起弹簧完全结束再卸载，避免截断。
+            delay(1200)
             mounted.value = false
         }
     }
@@ -191,30 +173,21 @@ fun GlassOverlayListPopup(
         enterTransition = EnterTransition.None,
         exitTransition = ExitTransition.None,
     ) {
-        // 首帧以关闭态进入组合、下一帧再打开：animateFloatAsState 首次组合直接取目标值，
-        // 若挂载时 show 已为 true，进度一开始就是 1，展开动画会被跳过（表现为闪现）。
+        // 库的 updateTransition 首次组合即取目标值；先以关闭态挂载一帧，展开才会走动画。
         val entered = remember { mutableStateOf(false) }
         LaunchedEffect(Unit) { entered.value = true }
         Box(modifier = Modifier.fillMaxSize()) {
-            GlassPopup(
+            GlassTransformPopup(
                 show = show && entered.value,
                 onDismissRequest = { onDismissRequest?.invoke() },
-                anchorBounds = anchor[0],
+                anchor = entry.anchor,
                 backdrop = PopupBackdropHolder.current,
+                anchorContent = { entry.icon() },
             ) {
                 content()
             }
         }
     }
-}
-
-/** 点击记录与占位相邻（同一按钮）时用真实边界，否则按占位左侧估算一个按钮。 */
-private fun resolveMenuAnchor(clicked: Rect, slot: Rect, fallbackSize: Float, tolerance: Float): Rect {
-    if (clicked == Rect.Zero) return Rect(slot.left - fallbackSize, slot.top, slot.left, slot.bottom)
-    if (slot == Rect.Zero) return clicked
-    val adjacent = abs(clicked.right - slot.left) <= tolerance &&
-        clicked.bottom > slot.top - tolerance && clicked.top < slot.bottom + tolerance
-    return if (adjacent) clicked else Rect(slot.left - fallbackSize, slot.top, slot.left, slot.bottom)
 }
 
 /** 玻璃菜单内的列容器（替代 Miuix ListPopupColumn，避免其固有尺寸测量与玻璃面板冲突）。 */
