@@ -187,7 +187,7 @@ object PowerKeeperBinderClient {
     private fun bindFromPowerKeeperOnce(context: Context): Boolean {
         val binder = acquireSystemBinder(context)
         if (binder == null) {
-            Logger.error("PK绑定系统服务为空")
+            Logger.alwaysWarn("PK绑定系统服务暂未就绪（system_server 侧可能仍在重装），稍后重试")
             return false
         }
         if (!pingAlive(binder)) {

@@ -24,7 +24,8 @@ class CombinedBackdrop(
         density: Density,
         coordinates: LayoutCoordinates?,
         layerBlock: (GraphicsLayerScope.() -> Unit)?,
-        downscaleFactor: Int,
+        // Miuix 0.9.5 将 Backdrop.drawBackdrop 的 downscaleFactor 由 Int 改为 Float。
+        downscaleFactor: Float,
     ) {
         with(first) { drawBackdrop(density, coordinates, layerBlock, downscaleFactor) }
         with(second) { drawBackdrop(density, coordinates, layerBlock, downscaleFactor) }

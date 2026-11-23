@@ -37,6 +37,7 @@ import java.io.StringWriter
  *   S14（moveToStateLocked 跳过 IDLE_PENDING 直进 IDLE_MAINTENANCE）。
  */
 object BroadcastAndDozeHooks {
+    private val skipBroadcastLogAt = java.util.concurrent.ConcurrentHashMap<String, Long>()
 
     private const val CLASS_AMS = "com.android.server.am.ActivityManagerService"
     private const val CLASS_BROADCAST_SKIP_POLICY = "com.android.server.am.BroadcastSkipPolicy"
@@ -233,7 +234,14 @@ object BroadcastAndDozeHooks {
                 return@HookSpec param.invokeOriginal()
             }
 
-            Logger.info("修改 ${procState.processName} ,跳过广播")
+            if (prefs.isLog) {
+                val now = android.os.SystemClock.uptimeMillis()
+                val last = skipBroadcastLogAt[procState.processName]
+                if (last == null || now - last !in 0..60_000L) {
+                    skipBroadcastLogAt[procState.processName] = now
+                    Logger.info("修改 ${procState.processName} ,跳过广播（60 秒内同进程不再重复记录）")
+                }
+            }
             SKIP_FROZEN_BROADCAST_REASON
         }
     )

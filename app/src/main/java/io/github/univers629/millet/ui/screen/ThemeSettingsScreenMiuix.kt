@@ -1,4 +1,9 @@
 package io.github.univers629.millet.ui.screen
+import androidx.compose.material.icons.rounded.Gradient
+import top.yukonga.miuix.kmp.glass.GlassDropdownPreference
+import io.github.univers629.millet.ui.util.MilletTopAppBar
+import io.github.univers629.millet.ui.util.MilletSmallTopAppBar
+import io.github.univers629.millet.ui.util.BarIconButton
 
 import android.app.Activity
 import android.app.Application
@@ -134,12 +139,12 @@ fun ThemeSettingsScreenMiuix(
     Scaffold(
         topBar = {
             BlurredBar(backdrop, blurActive) {
-                TopAppBar(
+                MilletTopAppBar(
                     color = barColor,
                     title = "外观个性化",
                     scrollBehavior = scrollBehavior,
                     navigationIcon = {
-                        IconButton(onClick = onBack) {
+                        BarIconButton(onClick = onBack) {
                             val layoutDirection = LocalLayoutDirection.current
                             Icon(
                                 modifier = Modifier.graphicsLayer {
@@ -194,7 +199,7 @@ fun ThemeSettingsScreenMiuix(
                             onCheckedChange = { themeState.updateEnableFloatingBottomBar(it) }
                         )
 
-                        SwitchPreference(
+                        GlassDropdownPreference(
                             startAction = {
                                 Icon(
                                     imageVector = Icons.Rounded.BlurOn,
@@ -205,10 +210,19 @@ fun ThemeSettingsScreenMiuix(
                                     tint = colorScheme.onBackground
                                 )
                             },
-                            title = "启用顶栏与底栏毛玻璃效果",
-                            summary = "开启 Miuix 实时背景模糊渲染 (textureBlur)",
-                            checked = themeState.enableBlur,
-                            onCheckedChange = { themeState.updateEnableBlur(it) }
+                            title = "顶栏与底栏背景模糊",
+                            summary = "高斯模糊为整块毛玻璃；渐进式模糊为 HyperOS 4 风格边缘渐隐，两者互斥",
+                            items = listOf("关闭", "高斯模糊", "渐进式模糊"),
+                            selectedIndex = when {
+                                !themeState.enableBlur -> 0
+                                themeState.enableProgressiveBlur -> 2
+                                else -> 1
+                            },
+                            onSelectedIndexChange = { idx ->
+                                themeState.updateEnableBlur(idx != 0)
+                                if (idx != 0) themeState.updateEnableProgressiveBlur(idx == 2)
+                            },
+                            backdrop = backdrop,
                         )
 
                         AnimatedVisibility(
@@ -321,7 +335,7 @@ fun ThemeSettingsScreenMiuix(
                             exit = fadeOut() + shrinkVertically()
                         ) {
                             Column {
-                                OverlayDropdownPreference(
+                                GlassDropdownPreference(backdrop = backdrop, 
                                     title = "调色板风格 (PaletteStyle)",
                                     startAction = {
                                         Icon(
@@ -340,7 +354,7 @@ fun ThemeSettingsScreenMiuix(
                                     }
                                 )
 
-                                OverlayDropdownPreference(
+                                GlassDropdownPreference(backdrop = backdrop, 
                                     title = "色彩规范版本 (ColorSpec)",
                                     startAction = {
                                         Icon(

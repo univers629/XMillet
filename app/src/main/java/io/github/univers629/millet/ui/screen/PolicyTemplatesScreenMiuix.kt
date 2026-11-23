@@ -1,4 +1,11 @@
 package io.github.univers629.millet.ui.screen
+import io.github.univers629.millet.ui.util.GlassOverlayListPopup
+import top.yukonga.miuix.kmp.glass.GlassDialog
+import top.yukonga.miuix.kmp.glass.GlassBottomSheet
+import io.github.univers629.millet.ui.util.PopupBackdropHolder
+import io.github.univers629.millet.ui.util.MilletTopAppBar
+import io.github.univers629.millet.ui.util.MilletSmallTopAppBar
+import io.github.univers629.millet.ui.util.BarIconButton
 
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -88,7 +95,7 @@ import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
-import top.yukonga.miuix.kmp.basic.ListPopupColumn
+import io.github.univers629.millet.ui.util.ListPopupColumn
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.PopupPositionProvider
 import top.yukonga.miuix.kmp.basic.Scaffold
@@ -103,7 +110,6 @@ import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.icon.extended.Close
 import top.yukonga.miuix.kmp.icon.extended.MoreCircle
 import top.yukonga.miuix.kmp.overlay.OverlayBottomSheet
-import top.yukonga.miuix.kmp.overlay.OverlayListPopup
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.theme.LocalDismissState
@@ -137,11 +143,11 @@ internal fun PolicySubPageScaffold(
     Scaffold(
         topBar = {
             BlurredBar(backdrop, blurActive) {
-                TopAppBar(
+                MilletTopAppBar(
                     color = barColor,
                     title = title,
                     navigationIcon = {
-                        IconButton(onClick = onBack) {
+                        BarIconButton(onClick = onBack) {
                             val layoutDirection = LocalLayoutDirection.current
                             Icon(
                                 modifier = Modifier.graphicsLayer {
@@ -506,7 +512,7 @@ fun PolicyTemplateDetailScreenMiuix(
         actions = {
             if (!template.builtIn) {
                 val showTopPopup = remember { mutableStateOf(false) }
-                IconButton(
+                BarIconButton(
                     modifier = Modifier.padding(end = 12.dp),
                     onClick = { showTopPopup.value = true },
                     holdDownState = showTopPopup.value
@@ -517,7 +523,7 @@ fun PolicyTemplateDetailScreenMiuix(
                         contentDescription = "模板操作"
                     )
                 }
-                OverlayListPopup(
+                GlassOverlayListPopup(
                     show = showTopPopup.value,
                     popupPositionProvider = ListPopupDefaults.MenuPositionProvider,
                     alignment = PopupPositionProvider.Align.TopEnd,
@@ -860,10 +866,9 @@ internal fun PolicyTemplateEditorSheet(
     val navBottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() +
         WindowInsets.captionBar.asPaddingValues().calculateBottomPadding()
 
-    OverlayBottomSheet(
+    GlassBottomSheet(backdrop = PopupBackdropHolder.current, 
         show = show,
         title = if (initial == null) "新建自定义模板" else "编辑模板",
-        backgroundColor = colorScheme.surface,
         insideMargin = DpSize(16.dp, 0.dp),
         onDismissRequest = onDismiss,
     ) {
@@ -1051,10 +1056,9 @@ private fun PolicyAppPickerSheet(
     val navBottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() +
         WindowInsets.captionBar.asPaddingValues().calculateBottomPadding()
 
-    OverlayBottomSheet(
+    GlassBottomSheet(backdrop = PopupBackdropHolder.current, 
         show = show,
         title = "套用「${template.name}」",
-        backgroundColor = colorScheme.surface,
         insideMargin = DpSize(16.dp, 0.dp),
         onDismissRequest = onDismiss,
     ) {

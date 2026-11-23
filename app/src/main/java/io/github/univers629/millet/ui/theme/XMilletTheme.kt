@@ -52,6 +52,7 @@ val LocalColorMode = staticCompositionLocalOf { 0 }
 val LocalEnableBlur = compositionLocalOf { true }
 val LocalEnableFloatingBottomBar = compositionLocalOf { true }
 val LocalEnableFloatingBottomBarBlur = compositionLocalOf { true }
+val LocalEnableProgressiveBlur = compositionLocalOf { true }
 
 @Composable
 @ReadOnlyComposable
@@ -81,6 +82,7 @@ class UiThemeState(private val prefs: SharedPreferences) {
         private const val KEY_SHOW_TOMB_STATS = "ui_show_tomb_stats"   // 底栏显示「墓碑统计」，默认开启
         private const val KEY_PREDICTIVE_BACK = "ui_predictive_back"   // 预测性返回（OnBackInvoked 通道），默认关闭
         private const val KEY_SWIPE_BACK = "ui_swipe_back"             // 横移返回手势，默认开启
+        private const val KEY_PROGRESSIVE_BLUR = "ui_progressive_blur" // 顶栏/底栏渐进式模糊
     }
 
     /**
@@ -153,6 +155,14 @@ class UiThemeState(private val prefs: SharedPreferences) {
     /** 是否启用子页的横移返回手势。 */
     var enableSwipeBack by mutableStateOf(prefs.getBoolean(KEY_SWIPE_BACK, true))
         private set
+
+    var enableProgressiveBlur by mutableStateOf(prefs.getBoolean(KEY_PROGRESSIVE_BLUR, true))
+        private set
+
+    fun updateEnableProgressiveBlur(enabled: Boolean) {
+        enableProgressiveBlur = enabled
+        prefs.edit().putBoolean(KEY_PROGRESSIVE_BLUR, enabled).apply()
+    }
 
     fun updateDarkMode(mode: Int) {
         darkMode = mode.coerceIn(0, 2)
@@ -357,12 +367,14 @@ fun XMilletMiuixTheme(
 
         val view = LocalView.current
         val activity = context as? ComponentActivity
-        // 归属只在首次组合时按 activity 决定一次：旧实现在每次重组都重读 Local 与 ViewTree，
-        // 视图重建后会把主题自己挂到 decorView 的 owner 误判为宿主提供，从而移除返回输入、
-        // 清空 ViewTree 归属，返回手势直接退到桌面。决策绑定 activity 后，视图重建不再改变归属。
-        val (navOwner, ownsDispatcher) = remember(activity) {
+        // 只在首次组合时决定返回事件分发器的归属，并在 activity/view 不变期间保持稳定。
+        // 旧实现每次重组都重新读取 LocalNavigationEventDispatcherOwner：首次组合后自建分发器会被
+        // 挂到 decorView 上，下一次重组（例如切换外观开关）就会把它误判为「宿主已提供」，
+        // 进而移除返回输入并清空 ViewTree 归属，导致返回手势直接退到桌面；
+        // 再切一次开关又会新建分发器恢复功能，表现为返回首页随开关状态时好时坏。
+        val (navOwner, ownsDispatcher) = remember(activity, view) {
             val existing = (activity as? NavigationEventDispatcherOwner)
-                ?: activity?.window?.decorView?.findViewTreeNavigationEventDispatcherOwner()
+                ?: view.findViewTreeNavigationEventDispatcherOwner()
             if (existing != null) {
                 existing to false
             } else {
@@ -377,7 +389,7 @@ fun XMilletMiuixTheme(
             }
         }
         if (ownsDispatcher) {
-            DisposableEffect(navOwner, activity, themeState.enablePredictiveBack) {
+            DisposableEffect(navOwner, activity, view, themeState.enablePredictiveBack) {
                 val targetView = activity?.window?.decorView ?: view
                 if (targetView.findViewTreeNavigationEventDispatcherOwner() == null) {
                     targetView.setViewTreeNavigationEventDispatcherOwner(navOwner)
@@ -432,6 +444,7 @@ fun XMilletMiuixTheme(
             LocalEnableBlur provides themeState.enableBlur,
             LocalEnableFloatingBottomBar provides themeState.enableFloatingBottomBar,
             LocalEnableFloatingBottomBarBlur provides themeState.enableFloatingBottomBarBlur,
+            LocalEnableProgressiveBlur provides themeState.enableProgressiveBlur,
         ) {
             content()
         }

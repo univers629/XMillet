@@ -1730,7 +1730,11 @@ object FreezeStatsRecorder {
                 registeredScreenContext = targetCtx
                 cancelScreenReceiverRetryLocked()
             }.onFailure {
-                Logger.error("FreezeStatsRecorder registerScreenReceiver failed", it)
+                if (screenReceiverRetryAttempt < MAX_SCREEN_RECEIVER_RETRY) {
+                    Logger.alwaysWarn("FreezeStatsRecorder 亮灭屏广播暂不可注册（${it.javaClass.simpleName}，系统尚未就绪），将自动补挂")
+                } else {
+                    Logger.error("FreezeStatsRecorder registerScreenReceiver failed", it)
+                }
                 scheduleScreenReceiverRetryLocked(targetCtx)
             }
         }

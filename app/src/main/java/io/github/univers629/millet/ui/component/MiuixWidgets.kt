@@ -1,4 +1,8 @@
 package io.github.univers629.millet.ui.component
+import top.yukonga.miuix.kmp.glass.GlassPopupItem
+import top.yukonga.miuix.kmp.glass.GlassBottomSheet
+import io.github.univers629.millet.ui.util.PopupBackdropHolder
+import top.yukonga.miuix.kmp.glass.GlassDialog
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -152,28 +156,12 @@ fun DropdownItem(
     dropdownColors: DropdownColors = DropdownDefaults.dropdownColors(),
     onSelectedIndexChange: (Int) -> Unit
 ) {
-    val currentOnSelectedIndexChange = rememberUpdatedState(onSelectedIndexChange)
-    val additionalTopPadding = if (index == 0) 20f.dp else 12f.dp
-    val additionalBottomPadding = if (index == optionSize - 1) 20f.dp else 12f.dp
-
-    Row(
-        modifier = modifier
-            .clickable { currentOnSelectedIndexChange.value(index) }
-            .background(dropdownColors.containerColor)
-            .padding(horizontal = 20.dp)
-            .padding(
-                top = additionalTopPadding,
-                bottom = additionalBottomPadding
-            ),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = text,
-            fontSize = MiuixTheme.textStyles.body1.fontSize,
-            fontWeight = FontWeight.Medium,
-            color = dropdownColors.contentColor,
-        )
-    }
+    // OS4 玻璃菜单项：按压即时高亮、松手渐隐，与 GlassPopup 动效一致
+    GlassPopupItem(
+        text = text,
+        modifier = modifier,
+        onClick = { onSelectedIndexChange(index) },
+    )
 }
 
 object ListPopupDefaults {
@@ -214,7 +202,7 @@ fun MiuixConfirmDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    WindowDialog(
+    GlassDialog(backdrop = PopupBackdropHolder.current, 
         show = show,
         modifier = Modifier.windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top)),
         title = title,

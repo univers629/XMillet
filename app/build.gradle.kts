@@ -25,8 +25,28 @@ android {
         buildConfig = true
     }
 
+    // 发布签名：CI 通过环境变量提供 PKCS12 密钥库（来自仓库 Secrets），本地无密钥时 release 产物保持未签名
+    val releaseKeystorePath = System.getenv("RELEASE_KEYSTORE_PATH")
+    val hasReleaseKeystore = !releaseKeystorePath.isNullOrBlank() && file(releaseKeystorePath).exists()
+    signingConfigs {
+        create("release") {
+            if (hasReleaseKeystore) {
+                storeFile = file(releaseKeystorePath!!)
+                storeType = "PKCS12"
+                storePassword = System.getenv("RELEASE_STORE_PASSWORD")
+                keyAlias = System.getenv("RELEASE_KEY_ALIAS")
+                keyPassword = System.getenv("RELEASE_STORE_PASSWORD")
+                enableV2Signing = true
+                enableV3Signing = true
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (hasReleaseKeystore) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -70,15 +90,17 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.10.1")
     implementation("androidx.compose.material3:material3:1.4.0")
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
-    implementation("androidx.navigationevent:navigationevent:1.1.2")
-    implementation("androidx.navigationevent:navigationevent-compose:1.1.2")
+    implementation("androidx.navigationevent:navigationevent:1.2.0")
+    implementation("androidx.navigationevent:navigationevent-compose:1.2.0")
 
-    // Miuix KMP UI 组件库、图标、导航、设置项与毛玻璃特效 (0.9.4)
-    implementation("top.yukonga.miuix.kmp:miuix-ui-android:0.9.4")
-    implementation("top.yukonga.miuix.kmp:miuix-icons-android:0.9.4")
-    implementation("top.yukonga.miuix.kmp:miuix-nav-android:0.9.4")
-    implementation("top.yukonga.miuix.kmp:miuix-preference-android:0.9.4")
-    implementation("top.yukonga.miuix.kmp:miuix-blur-android:0.9.4")
+    // Miuix KMP UI 组件库、图标、导航、设置项与毛玻璃特效 (0.9.5-beta03)
+    implementation("top.yukonga.miuix.kmp:miuix-ui-android:0.9.5-beta03")
+    implementation("top.yukonga.miuix.kmp:miuix-icons-android:0.9.5-beta03")
+    implementation("top.yukonga.miuix.kmp:miuix-nav-android:0.9.5-beta03")
+    implementation("top.yukonga.miuix.kmp:miuix-preference-android:0.9.5-beta03")
+    implementation("top.yukonga.miuix.kmp:miuix-blur-android:0.9.5-beta03")
+    implementation("top.yukonga.miuix.kmp:miuix-material-android:0.9.5-beta03")
+    implementation("top.yukonga.miuix.kmp:miuix-glass-android:0.9.5-beta03")
 
     // 返回栈持久化（rememberNavBackStack 的 JSON 编解码）使用
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")

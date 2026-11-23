@@ -334,7 +334,6 @@ object Logger {
         localWriteDisabled = true
         Logger.alwaysWarn("本地日志写入失败（可能被 SELinux 拒绝），已降级为仅 LSPosed 输出")
     }
-
     private fun closeLocalWriter() {
         try {
             localWriter?.flush()

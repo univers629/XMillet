@@ -201,6 +201,7 @@ object FreezeGateHooks {
     ): FreezeExemption {
         if (pkg.isNullOrEmpty()) return FreezeExemption.NONE
         if (AppUidUtils.containsPolicyTarget(prefs.whiteAppSet, pkg, uid)) return FreezeExemption.WHITE_LIST
+        if (pkg in io.github.univers629.millet.core.BuiltinProtect.FREEZE_EXEMPT_PACKAGES) return FreezeExemption.WHITE_LIST
         when (ActiveImeTracker.resolveServiceRoleProtection(SystemState.systemContext, pkg, uid)) {
             ServiceRoleProtection.DEFAULT_IME -> return FreezeExemption.DEFAULT_IME
             ServiceRoleProtection.ACCESSIBILITY -> return FreezeExemption.ACCESSIBILITY_SERVICE
@@ -711,6 +712,8 @@ object FreezeGateHooks {
             val uids = param.args.getOrNull(0) as? IntArray ?: return@HookSpec
             val reason = param.args.getOrNull(2) as? String ?: return@HookSpec
             val prefs = PrefReader.systemPrefs
+            // 目标全都没被冻结时（如 VIBRATOR_APP 反复解冻桌面）直接放行原调用，不做统计与日志
+            if (uids.none { SystemState.isUidFrozen(it) }) return@HookSpec
             beginStats(param, uids.toList(), reason, freeze = false)
             val kept = ArrayList<Int>(uids.size)
             val blocked = ArrayList<Pair<Int, InterceptRule>>()

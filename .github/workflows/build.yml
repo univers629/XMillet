@@ -1,0 +1,78 @@
+name: Build XMillet
+
+on:
+  push:
+    branches: [ main, perf-patch ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # Use the runner's preinstalled Android SDK (android-actions/setup-android fails installing the deprecated 'tools' package)
+      - name: Install SDK platform 37
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          [ -x "$SDKM" ] || SDKM=$(ls -d "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager | tail -1)
+          echo "sdkmanager=$SDKM"
+          yes | "$SDKM" --licenses > /dev/null || true
+          "$SDKM" "platforms;android-37" "platform-tools" || echo "::warning::sdkmanager could not install platforms;android-37"
+          ls "$ANDROID_HOME/platforms" || true
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Decode release keystore
+        env:
+          KS_B64: ${{ secrets.RELEASE_KEYSTORE_B64 }}
+        run: |
+          umask 077
+          if [ -z "$KS_B64" ]; then echo "::error::RELEASE_KEYSTORE_B64 secret missing"; exit 1; fi
+          printf '%s' "$KS_B64" | base64 -d > "$RUNNER_TEMP/release.p12"
+          echo "RELEASE_KEYSTORE_PATH=$RUNNER_TEMP/release.p12" >> "$GITHUB_ENV"
+
+      - name: Build release APK
+        env:
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon --stacktrace assembleRelease
+          ls -la app/build/outputs/apk/release/
+
+      - name: Verify APK signature
+        run: |
+          APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          for f in app/build/outputs/apk/release/*.apk; do
+            case "$f" in *-unsigned.apk) echo "::error::unsigned APK produced"; exit 1;; esac
+            "$APKSIGNER" verify --verbose --print-certs "$f" | grep -E 'Verified using|Signer #1 certificate (DN|SHA-256)'
+            sha256sum "$f"
+          done
+
+      - name: Remove keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.p12"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: XMillet-perf-release
+          path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+
+      - name: Upload R8 mapping
+        uses: actions/upload-artifact@v4
+        with:
+          name: XMillet-perf-release-mapping
+          path: app/build/outputs/mapping/release/mapping.txt
+          if-no-files-found: warn

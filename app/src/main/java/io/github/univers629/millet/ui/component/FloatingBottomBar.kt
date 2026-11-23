@@ -72,13 +72,13 @@ import io.github.univers629.millet.ui.theme.isInDarkTheme
 import top.yukonga.miuix.kmp.blur.Backdrop
 import top.yukonga.miuix.kmp.blur.blur
 import top.yukonga.miuix.kmp.blur.drawBackdrop
-import top.yukonga.miuix.kmp.blur.highlight.BloomStroke
-import top.yukonga.miuix.kmp.blur.highlight.Highlight
-import top.yukonga.miuix.kmp.blur.highlight.LightPosition
-import top.yukonga.miuix.kmp.blur.highlight.LightSource
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
-import top.yukonga.miuix.kmp.blur.sensor.rememberDeviceTilt
+import top.yukonga.miuix.kmp.material.EdgeLightSource
+import top.yukonga.miuix.kmp.material.EdgePeak
+import top.yukonga.miuix.kmp.material.EdgeStroke
+import top.yukonga.miuix.kmp.material.edgeStroke
+import top.yukonga.miuix.kmp.material.sensor.rememberDeviceTilt
 import top.yukonga.miuix.kmp.theme.LocalContentColor
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import kotlin.math.PI
@@ -91,24 +91,15 @@ import kotlin.math.sin
 
 val LocalFloatingBottomBarTabScale = staticCompositionLocalOf { { 1f } }
 
-private val iosIndicatorSpecular: Highlight = Highlight(
+// Miuix 0.9.5 起 blur.highlight 被移除，边缘高光改由 material.EdgeStroke + Modifier.edgeStroke 绘制。
+// 参数与旧 BloomStroke 一一对应：innerBlurRadius -> bevel，dualPeak -> EdgePeak.Dual。
+private val iosIndicatorSpecular: EdgeStroke = EdgeStroke(
     width = 1.dp,
-    alpha = 1f,
-    style = BloomStroke(
-        color = Color.White.copy(alpha = 0.12f),
-        innerBlurRadius = 2.0.dp,
-        primaryLight = LightSource(
-            position = LightPosition(0.5f, -0.3f, -0.05f),
-            color = Color.White,
-            intensity = 1f,
-        ),
-        secondaryLight = LightSource(
-            position = LightPosition(0.5f, 0.8f, -0.5f),
-            color = Color.White,
-            intensity = 0.4f,
-        ),
-        dualPeak = true,
-    ),
+    bevel = 2.0.dp,
+    color = Color.White.copy(alpha = 0.12f),
+    primary = EdgeLightSource(0.5f, -0.3f, -0.05f, color = Color.White, intensity = 1f),
+    secondary = EdgeLightSource(0.5f, 0.8f, -0.5f, color = Color.White, intensity = 0.4f),
+    peak = EdgePeak.Dual,
 )
 
 private const val LIGHT_REF_X = 0.5f
@@ -134,24 +125,17 @@ private fun rememberQuantizedGravityAngle(): State<Float> {
 
 @Composable
 private fun rememberGravityRotatedHighlight(
-    base: Highlight,
+    base: EdgeStroke,
     extraDegrees: Float = 0f,
-): State<Highlight> {
-    val baseStyle = base.style as BloomStroke
+): State<EdgeStroke> {
     val angle = rememberQuantizedGravityAngle()
     return remember(angle, base, extraDegrees) {
         derivedStateOf {
-            val basePrimary = baseStyle.primaryLight
             val rad = angle.value + (extraDegrees * PI / 180.0).toFloat()
             base.copy(
-                style = baseStyle.copy(
-                    primaryLight = basePrimary.copy(
-                        position = LightPosition(
-                            x = LIGHT_REF_X + cos(rad),
-                            y = LIGHT_REF_Y + sin(rad),
-                            z = basePrimary.position.z,
-                        ),
-                    ),
+                primary = base.primary.copy(
+                    x = LIGHT_REF_X + cos(rad),
+                    y = LIGHT_REF_Y + sin(rad),
                 ),
             )
         }
@@ -370,7 +354,6 @@ fun FloatingBottomBar(
                                     refractionAmount = 24.dp.toPx(),
                                 )
                             },
-                            highlight = { baseHighlight.value.copy(alpha = 0.75f) },
                             layerBlock = {
                                 val width = size.width.coerceAtLeast(1f)
                                 val s = lerp(1f, 1f + 16.dp.toPx() / width, dampedDragAnimation.pressProgress)
@@ -378,6 +361,10 @@ fun FloatingBottomBar(
                                 scaleY = s
                             },
                             onDrawSurface = { drawRect(containerColor) },
+                        ).edgeStroke(
+                            shape = pillShape,
+                            stroke = { baseHighlight.value },
+                            alpha = { 0.75f },
                         )
                     } else {
                         Modifier.background(containerColor, pillShape)
@@ -455,7 +442,6 @@ fun FloatingBottomBar(
                                     chromaticAberration = 0.5f,
                                 )
                             },
-                            highlight = { pillHighlight.value.copy(alpha = dampedDragAnimation.pressProgress) },
                             layerBlock = {
                                 scaleX = dampedDragAnimation.scaleX
                                 scaleY = dampedDragAnimation.scaleY
@@ -471,6 +457,11 @@ fun FloatingBottomBar(
                                 )
                                 drawRect(Color.Black.copy(alpha = 0.03f * progress))
                             },
+                        )
+                        .edgeStroke(
+                            shape = pillShape,
+                            stroke = { pillHighlight.value },
+                            alpha = { dampedDragAnimation.pressProgress },
                         )
                         .innerShadow(shape = pillShape) {
                             InnerShadow(

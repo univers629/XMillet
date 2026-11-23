@@ -1,4 +1,11 @@
 package io.github.univers629.millet.ui.screen
+import top.yukonga.miuix.kmp.glass.GlassDialog
+import top.yukonga.miuix.kmp.glass.GlassBottomSheet
+import io.github.univers629.millet.ui.util.PopupBackdropHolder
+import top.yukonga.miuix.kmp.glass.GlassDropdownPreference
+import io.github.univers629.millet.ui.util.MilletTopAppBar
+import io.github.univers629.millet.ui.util.MilletSmallTopAppBar
+import io.github.univers629.millet.ui.util.BarIconButton
 
 import android.content.ComponentName
 import android.content.Context
@@ -226,7 +233,7 @@ fun SettingsScreenMiuix(
     Scaffold(
         topBar = {
             BlurredBar(backdrop, blurActive) {
-                TopAppBar(
+                MilletTopAppBar(
                     color = barColor,
                     title = "设置",
                     scrollBehavior = scrollBehavior
@@ -257,7 +264,7 @@ fun SettingsScreenMiuix(
                             .padding(horizontal = 12.dp)
                             .padding(bottom = 12.dp)
                     ) {
-                        OverlayDropdownPreference(
+                        GlassDropdownPreference(backdrop = backdrop, 
                             startAction = {
                                 Icon(
                                     imageVector = Icons.Rounded.DarkMode,
@@ -726,8 +733,9 @@ fun SettingsScreenMiuix(
 
 @Composable
 private fun LoadingDialogMiuix(show: Boolean) {
-    WindowDialog(
+    GlassDialog(backdrop = PopupBackdropHolder.current, 
         show = show,
+        onDismissRequest = { },
         content = {
             DialogBackHandler { }
             val navEventState = rememberNavigationEventState(NavigationEventInfo.None)
@@ -852,7 +860,7 @@ private fun SaveShareActionDialog(
         }
     }
 
-    OverlayDialog(
+    GlassDialog(backdrop = PopupBackdropHolder.current, 
         show = show,
         onDismissRequest = onDismissRequest,
         insideMargin = DpSize(0.dp, 0.dp),

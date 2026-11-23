@@ -1,4 +1,13 @@
 package io.github.univers629.millet.ui.component
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.unit.Dp
+import top.yukonga.miuix.kmp.blur.BlurColors
+import top.yukonga.miuix.kmp.blur.BlendColorEntry
+import top.yukonga.miuix.kmp.blur.ProgressiveBlur
+import top.yukonga.miuix.kmp.blur.progressiveTextureBlur
+import io.github.univers629.millet.ui.theme.LocalEnableProgressiveBlur
 
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.BoxScope
@@ -124,7 +133,10 @@ enum class BottomBarDestination(
 
 /**
  * XMillet 底部导航栏（复刻 KernelSU BottomBarMiuix）：
- * 支持在「液态玻璃悬浮底栏 (FloatingBottomBar)」与「经典毛玻璃全宽底栏 (NavigationBar)」间自由切换。
+ * - 悬浮模式：iOS 液态玻璃悬浮底栏 (FloatingBottomBar)，宽度随 Tab 数自适应；
+ * - 经典模式：全宽 NavigationBar；
+ * - 背景模糊为「渐进式」时，只在经典底栏自身范围内自下而上渐隐模糊，不向上溢出到内容区；
+ *   悬浮底栏由液态玻璃自行采样，不再额外叠加底部模糊带。
  */
 @Composable
 fun BoxScope.BottomBarMiuix(
@@ -137,6 +149,7 @@ fun BoxScope.BottomBarMiuix(
     val enableBlur = LocalEnableBlur.current
     val enableFloatingBottomBar = LocalEnableFloatingBottomBar.current
     val enableFloatingBottomBarBlur = LocalEnableFloatingBottomBarBlur.current
+    val progressive = LocalEnableProgressiveBlur.current && enableBlur && blurBackdrop != null
 
     val items = destinations.map { destination ->
         NavigationItem(
@@ -151,12 +164,28 @@ fun BoxScope.BottomBarMiuix(
     val safeSelectedIndex = mainState.selectedPage.coerceIn(0, (items.size - 1).coerceAtLeast(0))
 
     if (!enableFloatingBottomBar) {
+        val surface = colorScheme.surface
         BlurredBar(
             backdrop = blurBackdrop,
-            blurActive = enableBlur,
+            blurActive = enableBlur && !progressive,
             modifier = modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
+                .then(
+                    if (progressive && blurBackdrop != null) {
+                        Modifier.progressiveTextureBlur(
+                            backdrop = blurBackdrop,
+                            shape = RectangleShape,
+                            blurRadius = 60f,
+                            gradient = ProgressiveBlur.Bottom,
+                            colors = BlurColors(
+                                blendColors = listOf(BlendColorEntry(color = surface.copy(alpha = 0.3f))),
+                            ),
+                        )
+                    } else {
+                        Modifier
+                    }
+                )
         ) {
             NavigationBar(
                 modifier = Modifier.fillMaxWidth(),

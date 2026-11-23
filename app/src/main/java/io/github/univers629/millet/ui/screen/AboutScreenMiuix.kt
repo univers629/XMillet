@@ -1,4 +1,10 @@
 package io.github.univers629.millet.ui.screen
+import top.yukonga.miuix.kmp.glass.GlassDialog
+import top.yukonga.miuix.kmp.glass.GlassBottomSheet
+import io.github.univers629.millet.ui.util.PopupBackdropHolder
+import io.github.univers629.millet.ui.util.MilletTopAppBar
+import io.github.univers629.millet.ui.util.MilletSmallTopAppBar
+import io.github.univers629.millet.ui.util.BarIconButton
 
 import android.content.Context
 import android.content.Intent
@@ -202,7 +208,7 @@ fun AboutScreenMiuix(
 
     Scaffold(
         topBar = {
-            SmallTopAppBar(
+            MilletSmallTopAppBar(
                 modifier = Modifier.milletMiuixBlurEffect(
                     backdrop = backdrop,
                     enabled = scrollProgress == 1f,
@@ -217,7 +223,7 @@ fun AboutScreenMiuix(
                 titleColor = colorScheme.onSurface.copy(alpha = scrollProgress),
                 defaultWindowInsetsPadding = false,
                 navigationIcon = {
-                    IconButton(
+                    BarIconButton(
                         onClick = onBack,
                         modifier = Modifier.padding(start = 12.dp)
                     ) {
@@ -603,11 +609,11 @@ fun AboutKnowledgeScreenMiuix(
 
     Scaffold(
         topBar = {
-            SmallTopAppBar(
+            MilletSmallTopAppBar(
                 title = "墓碑与冻结机制解析",
                 scrollBehavior = topAppBarScrollBehavior,
                 navigationIcon = {
-                    IconButton(
+                    BarIconButton(
                         onClick = onBack,
                         modifier = Modifier.padding(start = 12.dp)
                     ) {
@@ -699,11 +705,11 @@ fun AboutRepoScreenMiuix(
 
     Scaffold(
         topBar = {
-            SmallTopAppBar(
+            MilletSmallTopAppBar(
                 title = "开源地址",
                 scrollBehavior = topAppBarScrollBehavior,
                 navigationIcon = {
-                    IconButton(
+                    BarIconButton(
                         onClick = onBack,
                         modifier = Modifier.padding(start = 12.dp)
                     ) {
@@ -819,7 +825,7 @@ fun AboutRepoScreenMiuix(
     }
 
     val activeResId = previewDonateResId
-    WindowDialog(
+    GlassDialog(backdrop = PopupBackdropHolder.current, 
         show = activeResId != null,
         modifier = Modifier.windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top)),
         title = "感谢支持",
@@ -961,11 +967,11 @@ fun AboutLicensesScreenMiuix(
 
     Scaffold(
         topBar = {
-            SmallTopAppBar(
+            MilletSmallTopAppBar(
                 title = "开源代码许可",
                 scrollBehavior = topAppBarScrollBehavior,
                 navigationIcon = {
-                    IconButton(
+                    BarIconButton(
                         onClick = onBack,
                         modifier = Modifier.padding(start = 12.dp)
                     ) {
