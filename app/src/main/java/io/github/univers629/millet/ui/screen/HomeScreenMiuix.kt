@@ -1,4 +1,7 @@
 package io.github.univers629.millet.ui.screen
+import io.github.univers629.millet.ui.util.MilletTopAppBar
+import io.github.univers629.millet.ui.util.MilletSmallTopAppBar
+import io.github.univers629.millet.ui.util.BarIconButton
 
 import android.os.Build
 import android.widget.Toast
@@ -175,11 +178,11 @@ fun HomeScreenMiuix(
     Scaffold(
         topBar = {
             BlurredBar(backdrop, blurActive) {
-                TopAppBar(
+                MilletTopAppBar(
                     color = barColor,
                     title = "XMillet",
                     actions = {
-                        IconButton(
+                        BarIconButton(
                             modifier = Modifier.padding(end = 4.dp),
                             onClick = { showHookCheckDialog = true }
                         ) {
@@ -190,7 +193,7 @@ fun HomeScreenMiuix(
                                 tint = if (allPass) colorScheme.primary else Color(0xFFFF9500)
                             )
                         }
-                        IconButton(
+                        BarIconButton(
                             modifier = Modifier.padding(end = 12.dp),
                             onClick = { showTopPopup = true },
                             holdDownState = showTopPopup

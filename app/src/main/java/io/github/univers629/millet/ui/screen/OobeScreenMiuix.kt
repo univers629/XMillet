@@ -1,4 +1,7 @@
 package io.github.univers629.millet.ui.screen
+import io.github.univers629.millet.ui.util.MilletTopAppBar
+import io.github.univers629.millet.ui.util.MilletSmallTopAppBar
+import io.github.univers629.millet.ui.util.BarIconButton
 
 import android.content.Context
 import android.content.Intent
@@ -359,12 +362,12 @@ fun OobeScreenMiuix(
                 ) {
                     Scaffold(
                         topBar = {
-                            SmallTopAppBar(
+                            MilletSmallTopAppBar(
                                 title = "",
                                 color = Color.Transparent,
                                 titleColor = colorScheme.onSurface,
                                 navigationIcon = {
-                                    IconButton(
+                                    BarIconButton(
                                         onClick = {
                                             currentStep = OobeStep.Startup
                                         },

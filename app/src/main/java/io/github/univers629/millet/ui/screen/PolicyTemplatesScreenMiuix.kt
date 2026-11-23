@@ -1,4 +1,7 @@
 package io.github.univers629.millet.ui.screen
+import io.github.univers629.millet.ui.util.MilletTopAppBar
+import io.github.univers629.millet.ui.util.MilletSmallTopAppBar
+import io.github.univers629.millet.ui.util.BarIconButton
 
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -137,11 +140,11 @@ internal fun PolicySubPageScaffold(
     Scaffold(
         topBar = {
             BlurredBar(backdrop, blurActive) {
-                TopAppBar(
+                MilletTopAppBar(
                     color = barColor,
                     title = title,
                     navigationIcon = {
-                        IconButton(onClick = onBack) {
+                        BarIconButton(onClick = onBack) {
                             val layoutDirection = LocalLayoutDirection.current
                             Icon(
                                 modifier = Modifier.graphicsLayer {

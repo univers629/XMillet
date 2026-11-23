@@ -1,4 +1,7 @@
 package io.github.univers629.millet.ui.screen
+import io.github.univers629.millet.ui.util.MilletTopAppBar
+import io.github.univers629.millet.ui.util.MilletSmallTopAppBar
+import io.github.univers629.millet.ui.util.BarIconButton
 
 import android.content.Context
 import android.content.pm.ApplicationInfo
@@ -770,11 +773,11 @@ fun TombStatsScreenMiuix(
     Scaffold(
         topBar = {
             BlurredBar(backdrop, blurActive) {
-                TopAppBar(
+                MilletTopAppBar(
                     color = barColor,
                     title = "墓碑统计",
                     actions = {
-                        IconButton(
+                        BarIconButton(
                             modifier = Modifier.padding(end = 4.dp),
                             onClick = { triggerManualRefresh() },
                         ) {
@@ -784,7 +787,7 @@ fun TombStatsScreenMiuix(
                                 tint = colorScheme.onSurface,
                             )
                         }
-                        IconButton(
+                        BarIconButton(
                             modifier = Modifier.padding(end = 12.dp),
                             onClick = { showTopPopup = true },
                             holdDownState = showTopPopup,

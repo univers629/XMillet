@@ -1,4 +1,9 @@
 package io.github.univers629.millet.ui.screen
+import androidx.compose.material.icons.rounded.Gradient
+import top.yukonga.miuix.kmp.glass.GlassDropdownPreference
+import io.github.univers629.millet.ui.util.MilletTopAppBar
+import io.github.univers629.millet.ui.util.MilletSmallTopAppBar
+import io.github.univers629.millet.ui.util.BarIconButton
 
 import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
@@ -128,12 +133,12 @@ fun ThemeSettingsScreenMiuix(
     Scaffold(
         topBar = {
             BlurredBar(backdrop, blurActive) {
-                TopAppBar(
+                MilletTopAppBar(
                     color = barColor,
                     title = "外观个性化",
                     scrollBehavior = scrollBehavior,
                     navigationIcon = {
-                        IconButton(onClick = onBack) {
+                        BarIconButton(onClick = onBack) {
                             val layoutDirection = LocalLayoutDirection.current
                             Icon(
                                 modifier = Modifier.graphicsLayer {
@@ -206,6 +211,29 @@ fun ThemeSettingsScreenMiuix(
                         )
 
                         AnimatedVisibility(
+                            visible = themeState.enableBlur,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically()
+                        ) {
+                            SwitchPreference(
+                                startAction = {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Gradient,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .padding(end = 8.dp)
+                                            .size(24.dp),
+                                        tint = colorScheme.onBackground
+                                    )
+                                },
+                                title = "渐进式模糊",
+                                summary = "HyperOS 4 风格：所有顶栏与底栏背景从边缘向内渐隐模糊",
+                                checked = themeState.enableProgressiveBlur,
+                                onCheckedChange = { themeState.updateEnableProgressiveBlur(it) }
+                            )
+                        }
+
+                        AnimatedVisibility(
                             visible = themeState.enableFloatingBottomBar,
                             enter = fadeIn() + expandVertically(),
                             exit = fadeOut() + shrinkVertically()
@@ -261,7 +289,7 @@ fun ThemeSettingsScreenMiuix(
                             exit = fadeOut() + shrinkVertically()
                         ) {
                             Column {
-                                OverlayDropdownPreference(
+                                GlassDropdownPreference(backdrop = backdrop, 
                                     title = "调色板风格 (PaletteStyle)",
                                     startAction = {
                                         Icon(
@@ -280,7 +308,7 @@ fun ThemeSettingsScreenMiuix(
                                     }
                                 )
 
-                                OverlayDropdownPreference(
+                                GlassDropdownPreference(backdrop = backdrop, 
                                     title = "色彩规范版本 (ColorSpec)",
                                     startAction = {
                                         Icon(

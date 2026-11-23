@@ -46,6 +46,7 @@ val LocalColorMode = staticCompositionLocalOf { 0 }
 val LocalEnableBlur = compositionLocalOf { true }
 val LocalEnableFloatingBottomBar = compositionLocalOf { true }
 val LocalEnableFloatingBottomBarBlur = compositionLocalOf { true }
+val LocalEnableProgressiveBlur = compositionLocalOf { true }
 
 @Composable
 @ReadOnlyComposable
@@ -73,6 +74,7 @@ class UiThemeState(private val prefs: SharedPreferences) {
         private const val KEY_FLOATING_BAR = "ui_floating_bar"       // 悬浮底栏
         private const val KEY_FLOATING_BAR_BLUR = "ui_floating_bar_blur" // 悬浮底栏液态玻璃折射
         private const val KEY_SHOW_TOMB_STATS = "ui_show_tomb_stats"   // 底栏显示「墓碑统计」，默认开启
+        private const val KEY_PROGRESSIVE_BLUR = "ui_progressive_blur" // 顶栏/底栏渐进式模糊
     }
 
     /**
@@ -137,6 +139,14 @@ class UiThemeState(private val prefs: SharedPreferences) {
 
     var enableFloatingBottomBarBlur by mutableStateOf(prefs.getBoolean(KEY_FLOATING_BAR_BLUR, true))
         private set
+
+    var enableProgressiveBlur by mutableStateOf(prefs.getBoolean(KEY_PROGRESSIVE_BLUR, true))
+        private set
+
+    fun updateEnableProgressiveBlur(enabled: Boolean) {
+        enableProgressiveBlur = enabled
+        prefs.edit().putBoolean(KEY_PROGRESSIVE_BLUR, enabled).apply()
+    }
 
     fun updateDarkMode(mode: Int) {
         darkMode = mode.coerceIn(0, 2)
@@ -338,6 +348,7 @@ fun XMilletMiuixTheme(
             LocalEnableBlur provides themeState.enableBlur,
             LocalEnableFloatingBottomBar provides themeState.enableFloatingBottomBar,
             LocalEnableFloatingBottomBarBlur provides themeState.enableFloatingBottomBarBlur,
+            LocalEnableProgressiveBlur provides themeState.enableProgressiveBlur,
         ) {
             content()
         }

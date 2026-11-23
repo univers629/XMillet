@@ -676,7 +676,8 @@ object PowerKeeperHooks {
 
     private fun isFreezeOrKillExemptPkg(pkg: String?, prefs: io.github.univers629.millet.core.PrefsSnapshot, uid: Int): Boolean {
         if (pkg == null) return false
-        return AppUidUtils.containsPolicyTarget(prefs.whiteAppSet, pkg, uid) ||
+        return pkg in io.github.univers629.millet.core.BuiltinProtect.FREEZE_EXEMPT_PACKAGES ||
+            AppUidUtils.containsPolicyTarget(prefs.whiteAppSet, pkg, uid) ||
             ActiveImeTracker.isProtectedSystemServiceApp(PowerKeeperState.applicationContext, pkg, prefs, uid)
     }
 

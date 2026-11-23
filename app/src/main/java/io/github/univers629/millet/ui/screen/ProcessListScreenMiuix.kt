@@ -1,4 +1,8 @@
 package io.github.univers629.millet.ui.screen
+import top.yukonga.miuix.kmp.glass.GlassDropdownPreference
+import io.github.univers629.millet.ui.util.MilletTopAppBar
+import io.github.univers629.millet.ui.util.MilletSmallTopAppBar
+import io.github.univers629.millet.ui.util.BarIconButton
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -143,11 +147,11 @@ fun ProcessListScreenMiuix(
     Scaffold(
         topBar = {
             BlurredBar(backdrop, blurActive) {
-                TopAppBar(
+                MilletTopAppBar(
                     color = barColor,
                     title = "进程列表 (${filteredProcesses.size})",
                     actions = {
-                        IconButton(
+                        BarIconButton(
                             modifier = Modifier.padding(end = 4.dp),
                             onClick = onRefresh
                         ) {
@@ -157,7 +161,7 @@ fun ProcessListScreenMiuix(
                                 tint = colorScheme.onSurface
                             )
                         }
-                        IconButton(
+                        BarIconButton(
                             modifier = Modifier.padding(end = 12.dp),
                             onClick = { showTopPopup = true },
                             holdDownState = showTopPopup
@@ -237,54 +241,30 @@ fun ProcessListScreenMiuix(
                         )
                     }
 
-                    // 2. 状态胶囊横向过滤条
+                    // 2. 状态筛选（下拉，避免与切页手势冲突）
                     if (snapshotUnavailable) {
                         item {
                             BasicComponent(title = "进程快照不可用", summary = "显示上次结果；请检查模块连接后刷新，旧结果不代表当前状态。")
                         }
                     }
                     item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState())
-                                .padding(vertical = 4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            ProcessFilterMode.entries.forEachIndexed { idx, mode ->
-                                val selected = idx == filterIndex
-                                val count = when (mode) {
-                                    ProcessFilterMode.ALL -> runningProcesses.size
-                                    ProcessFilterMode.FROZEN -> frozenCount
-                                    ProcessFilterMode.RUNNING -> runningCount
-                                    ProcessFilterMode.UNKNOWN -> runningProcesses.size - frozenCount - runningCount
-                                }
-                                val bgColor = if (selected) {
-                                    colorScheme.primary
-                                } else {
-                                    colorScheme.surfaceContainerHigh
-                                }
-                                val txtColor = if (selected) {
-                                    colorScheme.onPrimary
-                                } else {
-                                    colorScheme.onSurfaceVariantSummary
-                                }
-                                Box(
-                                    modifier = Modifier
-                                        .clip(CircleShape)
-                                        .background(bgColor)
-                                        .clickable { onFilterIndexChange(idx) }
-                                        .padding(horizontal = 14.dp, vertical = 7.dp)
-                                ) {
-                                    Text(
-                                        text = "${mode.label} ($count)",
-                                        color = txtColor,
-                                        fontSize = 13.sp,
-                                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
-                                    )
-                                }
+                        val filterCounts = ProcessFilterMode.entries.map { mode ->
+                            when (mode) {
+                                ProcessFilterMode.ALL -> runningProcesses.size
+                                ProcessFilterMode.FROZEN -> frozenCount
+                                ProcessFilterMode.RUNNING -> runningCount
+                                ProcessFilterMode.UNKNOWN -> runningProcesses.size - frozenCount - runningCount
                             }
+                        }
+                        // 下拉选择代替横向胶囊条：不再与左右切页手势争抢横向拖动
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            GlassDropdownPreference(
+                                title = "筛选",
+                                items = ProcessFilterMode.entries.mapIndexed { i, mode -> "${mode.label} (${filterCounts[i]})" },
+                                selectedIndex = filterIndex.coerceIn(0, ProcessFilterMode.entries.lastIndex),
+                                onSelectedIndexChange = onFilterIndexChange,
+                                backdrop = backdrop,
+                            )
                         }
                     }
 

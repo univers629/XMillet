@@ -99,6 +99,7 @@ dependencies {
     implementation("top.yukonga.miuix.kmp:miuix-preference-android:0.9.5-beta03")
     implementation("top.yukonga.miuix.kmp:miuix-blur-android:0.9.5-beta03")
     implementation("top.yukonga.miuix.kmp:miuix-material-android:0.9.5-beta03")
+    implementation("top.yukonga.miuix.kmp:miuix-glass-android:0.9.5-beta03")
 
     testImplementation("junit:junit:4.13.2")
 }

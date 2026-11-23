@@ -2,9 +2,11 @@ package io.github.univers629.millet.ui.util
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
+import io.github.univers629.millet.ui.theme.LocalEnableProgressiveBlur
 import top.yukonga.miuix.kmp.blur.BlendColorEntry
 import top.yukonga.miuix.kmp.blur.BlurColors
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
@@ -46,6 +48,10 @@ fun Modifier.milletMiuixBlurEffect(
     )
 }
 
+/**
+ * 顶栏/底栏外壳：向内下发背景采样源（[LocalBarBackdrop]）。
+ * 渐进式模糊开启时由 GlassTopAppBar / 底部渐变带自行绘制，这里不再叠整块 textureBlur。
+ */
 @Composable
 fun BlurredBar(
     backdrop: LayerBackdrop?,
@@ -53,24 +59,27 @@ fun BlurredBar(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    Box(
-        modifier = modifier.then(
-            if (blurActive && backdrop != null) {
-                Modifier.textureBlur(
-                    backdrop = backdrop,
-                    shape = RectangleShape,
-                    blurRadius = 25f,
-                    colors = BlurColors(
-                        blendColors = listOf(
-                            BlendColorEntry(color = MiuixTheme.colorScheme.surface.copy(0.87f)),
+    val progressive = LocalEnableProgressiveBlur.current && backdrop != null
+    CompositionLocalProvider(LocalBarBackdrop provides backdrop) {
+        Box(
+            modifier = modifier.then(
+                if (blurActive && !progressive && backdrop != null) {
+                    Modifier.textureBlur(
+                        backdrop = backdrop,
+                        shape = RectangleShape,
+                        blurRadius = 25f,
+                        colors = BlurColors(
+                            blendColors = listOf(
+                                BlendColorEntry(color = MiuixTheme.colorScheme.surface.copy(0.87f)),
+                            ),
                         ),
-                    ),
-                )
-            } else {
-                Modifier
-            }
-        ),
-    ) {
-        content()
+                    )
+                } else {
+                    Modifier
+                }
+            ),
+        ) {
+            content()
+        }
     }
 }

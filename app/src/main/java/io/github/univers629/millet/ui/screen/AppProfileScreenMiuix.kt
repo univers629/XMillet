@@ -1,4 +1,7 @@
 package io.github.univers629.millet.ui.screen
+import io.github.univers629.millet.ui.util.MilletTopAppBar
+import io.github.univers629.millet.ui.util.MilletSmallTopAppBar
+import io.github.univers629.millet.ui.util.BarIconButton
 
 import android.content.Context
 import android.content.Intent
@@ -252,11 +255,11 @@ fun AppProfileScreenMiuix(
     Scaffold(
         topBar = {
             BlurredBar(backdrop, blurActive) {
-                TopAppBar(
+                MilletTopAppBar(
                     color = barColor,
                     title = "应用策略配置",
                     navigationIcon = {
-                        IconButton(onClick = onBack) {
+                        BarIconButton(onClick = onBack) {
                             val layoutDirection = LocalLayoutDirection.current
                             Icon(
                                 modifier = Modifier.graphicsLayer {
@@ -270,7 +273,7 @@ fun AppProfileScreenMiuix(
                     },
                     actions = {
                         val showTopPopup = remember { mutableStateOf(false) }
-                        IconButton(
+                        BarIconButton(
                             modifier = Modifier.padding(end = 12.dp),
                             onClick = { showTopPopup.value = true },
                             holdDownState = showTopPopup.value

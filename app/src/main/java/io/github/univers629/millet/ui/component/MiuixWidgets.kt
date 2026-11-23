@@ -1,4 +1,5 @@
 package io.github.univers629.millet.ui.component
+import top.yukonga.miuix.kmp.glass.GlassDialog
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -214,7 +215,7 @@ fun MiuixConfirmDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    WindowDialog(
+    GlassDialog(backdrop = null, 
         show = show,
         modifier = Modifier.windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top)),
         title = title,

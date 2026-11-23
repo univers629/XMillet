@@ -739,7 +739,7 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(isProvisioned, isForeground) {
             if (!isProvisioned || !isForeground) return@LaunchedEffect
             while (true) {
-                delay(5_000)
+                delay(if (activeDestination == BottomBarDestination.Processes) 5_000L else 15_000L)
                 if (isForeground) refreshStatusAndRunningProcs()
             }
         }

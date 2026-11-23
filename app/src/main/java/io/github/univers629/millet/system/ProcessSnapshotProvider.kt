@@ -54,6 +54,20 @@ object ProcessSnapshotProvider {
 
     private val lock = Any()
 
+    /** smaps_rollup 读取最贵（逐 VMA 汇总），PSS 变化慢：同一进程实例 30 秒内复用。 */
+    private class PssEntry(val startSec: Double, val pssKb: Long, val at: Long)
+    private val pssCache = HashMap<Int, PssEntry>()
+    private const val PSS_TTL_MS = 30_000L
+
+    private fun cachedPssKb(pid: Int, startSec: Double, seen: MutableSet<Int>): Long? {
+        seen.add(pid)
+        val now = SystemClock.uptimeMillis()
+        pssCache[pid]?.let { if (it.startSec == startSec && now - it.at in 0..PSS_TTL_MS) return it.pssKb }
+        val value = readPssKb(pid)
+        if (value == null) pssCache.remove(pid) else pssCache[pid] = PssEntry(startSec, value, now)
+        return value
+    }
+
     /** 返回序列化快照（首行是版本号，其后每行一个进程，字段用 `|` 分隔）。 */
     fun snapshot(): String {
         val now = SystemClock.uptimeMillis()
@@ -90,6 +104,7 @@ object ProcessSnapshotProvider {
 
         var rowCount = 0
         var withServices = 0
+        val seenPids = HashSet<Int>()
         for (pidName in pidNames) {
             val pid = pidName.toIntOrNull() ?: continue
             if (pid <= 0) continue
@@ -110,7 +125,7 @@ object ProcessSnapshotProvider {
                 0L
             }
             val (vszKb, statmRssKb) = parseStatm(readText("/proc/$pid/statm").orEmpty(), pageSizeKb)
-            val memKb = readPssKb(pid) ?: statmRssKb
+            val memKb = cachedPssKb(pid, startSec, seenPids) ?: statmRssKb
             val wchan = readText("/proc/$pid/wchan")?.trim().orEmpty()
             val evidence = ProcessFreezeReader.inspect(readText("/proc/$pid/cgroup"), state, wchan, mounts, ::readText)
             val statAfter = readText("/proc/$pid/stat") ?: continue
@@ -134,6 +149,7 @@ object ProcessSnapshotProvider {
             rowCount++
             if (services.isNotEmpty()) withServices++
         }
+        pssCache.keys.retainAll(seenPids)
         logSummary(rowCount, withServices)
         return builder.toString()
     }

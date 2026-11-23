@@ -1,4 +1,7 @@
 package io.github.univers629.millet.ui.screen
+import io.github.univers629.millet.ui.util.MilletTopAppBar
+import io.github.univers629.millet.ui.util.MilletSmallTopAppBar
+import io.github.univers629.millet.ui.util.BarIconButton
 
 import android.content.SharedPreferences
 import android.content.pm.ApplicationInfo
@@ -217,12 +220,12 @@ fun AppsScreenMiuix(
     Scaffold(
         topBar = {
             BlurredBar(backdrop, blurActive) {
-                TopAppBar(
+                MilletTopAppBar(
                     color = barColor,
                     title = "应用策略 (${filteredApps.size})",
                     actions = {
                         val showTopPopup = remember { mutableStateOf(false) }
-                        IconButton(
+                        BarIconButton(
                             modifier = Modifier.padding(end = 12.dp),
                             onClick = { showTopPopup.value = true },
                             holdDownState = showTopPopup.value
