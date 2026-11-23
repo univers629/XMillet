@@ -191,9 +191,13 @@ fun GlassOverlayListPopup(
         enterTransition = EnterTransition.None,
         exitTransition = ExitTransition.None,
     ) {
+        // 首帧以关闭态进入组合、下一帧再打开：animateFloatAsState 首次组合直接取目标值，
+        // 若挂载时 show 已为 true，进度一开始就是 1，展开动画会被跳过（表现为闪现）。
+        val entered = remember { mutableStateOf(false) }
+        LaunchedEffect(Unit) { entered.value = true }
         Box(modifier = Modifier.fillMaxSize()) {
             GlassPopup(
-                show = show,
+                show = show && entered.value,
                 onDismissRequest = { onDismissRequest?.invoke() },
                 anchorBounds = anchor[0],
                 backdrop = PopupBackdropHolder.current,
