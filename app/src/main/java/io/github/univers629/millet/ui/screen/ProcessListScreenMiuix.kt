@@ -1,4 +1,5 @@
 package io.github.univers629.millet.ui.screen
+import io.github.univers629.millet.ui.util.GlassOverlayListPopup
 import top.yukonga.miuix.kmp.glass.GlassDropdownPreference
 import io.github.univers629.millet.ui.util.MilletTopAppBar
 import io.github.univers629.millet.ui.util.MilletSmallTopAppBar
@@ -57,7 +58,7 @@ import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
-import top.yukonga.miuix.kmp.basic.ListPopupColumn
+import io.github.univers629.millet.ui.util.ListPopupColumn
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.PopupPositionProvider
 import top.yukonga.miuix.kmp.basic.PullToRefresh
@@ -70,7 +71,6 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.basic.ArrowRight
 import top.yukonga.miuix.kmp.icon.extended.MoreCircle
 import top.yukonga.miuix.kmp.icon.extended.Refresh
-import top.yukonga.miuix.kmp.overlay.OverlayListPopup
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
 import top.yukonga.miuix.kmp.utils.overScrollVertical
@@ -172,7 +172,7 @@ fun ProcessListScreenMiuix(
                                 contentDescription = "更多操作"
                             )
                         }
-                        OverlayListPopup(
+                        GlassOverlayListPopup(
                             show = showTopPopup,
                             popupPositionProvider = ListPopupDefaults.MenuPositionProvider,
                             alignment = PopupPositionProvider.Align.TopEnd,

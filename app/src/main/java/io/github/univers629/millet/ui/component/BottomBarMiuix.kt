@@ -7,8 +7,6 @@ import top.yukonga.miuix.kmp.blur.BlurColors
 import top.yukonga.miuix.kmp.blur.BlendColorEntry
 import top.yukonga.miuix.kmp.blur.ProgressiveBlur
 import top.yukonga.miuix.kmp.blur.progressiveTextureBlur
-import top.yukonga.miuix.kmp.glass.GlassNavigationBar
-import top.yukonga.miuix.kmp.glass.GlassNavigationItem
 import io.github.univers629.millet.ui.theme.LocalEnableProgressiveBlur
 
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -134,10 +132,11 @@ enum class BottomBarDestination(
 }
 
 /**
- * XMillet 底部导航栏：
- * - 悬浮模式：Miuix Glass 液态玻璃底栏 (GlassNavigationBar)，拖拽指示器自带阻尼弹簧；
+ * XMillet 底部导航栏（复刻 KernelSU BottomBarMiuix）：
+ * - 悬浮模式：iOS 液态玻璃悬浮底栏 (FloatingBottomBar)，宽度随 Tab 数自适应；
  * - 经典模式：全宽 NavigationBar；
- * - 渐进式模糊开启时，底部背景改为自下而上渐隐的 progressiveTextureBlur，两种模式共用。
+ * - 背景模糊为「渐进式」时，只在经典底栏自身范围内自下而上渐隐模糊，不向上溢出到内容区；
+ *   悬浮底栏由液态玻璃自行采样，不再额外叠加底部模糊带。
  */
 @Composable
 fun BoxScope.BottomBarMiuix(
@@ -151,34 +150,52 @@ fun BoxScope.BottomBarMiuix(
     val enableFloatingBottomBar = LocalEnableFloatingBottomBar.current
     val enableFloatingBottomBarBlur = LocalEnableFloatingBottomBarBlur.current
     val progressive = LocalEnableProgressiveBlur.current && enableBlur && blurBackdrop != null
-    val safeSelectedIndex = mainState.selectedPage.coerceIn(0, (destinations.size - 1).coerceAtLeast(0))
-    val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() +
-        WindowInsets.captionBar.asPaddingValues().calculateBottomPadding()
 
-    if (progressive && blurBackdrop != null) {
-        ProgressiveBottomBand(
-            backdrop = blurBackdrop,
-            height = bottomInset + if (enableFloatingBottomBar) 104.dp else 88.dp,
+    val items = destinations.map { destination ->
+        NavigationItem(
+            label = destination.label,
+            icon = destination.icon,
         )
     }
+    // 5 个 Tab 时收窄：5×60 + 8 + 2×16 = 340dp，紧凑屏 (360dp) 也有余量且不挤压文字；4 个 Tab 保持原尺寸
+    val dense = items.size >= 5
+    val itemMinWidth = if (dense) 60.dp else 68.dp
+    val sideMargin = if (dense) 16.dp else 28.dp
+    val safeSelectedIndex = mainState.selectedPage.coerceIn(0, (items.size - 1).coerceAtLeast(0))
 
     if (!enableFloatingBottomBar) {
+        val surface = colorScheme.surface
         BlurredBar(
             backdrop = blurBackdrop,
             blurActive = enableBlur && !progressive,
             modifier = modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
+                .then(
+                    if (progressive && blurBackdrop != null) {
+                        Modifier.progressiveTextureBlur(
+                            backdrop = blurBackdrop,
+                            shape = RectangleShape,
+                            blurRadius = 60f,
+                            gradient = ProgressiveBlur.Bottom,
+                            colors = BlurColors(
+                                blendColors = listOf(BlendColorEntry(color = surface.copy(alpha = 0.3f))),
+                            ),
+                        )
+                    } else {
+                        Modifier
+                    }
+                )
         ) {
             NavigationBar(
                 modifier = Modifier.fillMaxWidth(),
                 color = if (enableBlur && blurBackdrop != null) Color.Transparent else colorScheme.surface,
             ) {
-                destinations.forEachIndexed { index, destination ->
+                items.forEachIndexed { index, item ->
                     NavigationBarItem(
                         modifier = Modifier.weight(1f),
-                        icon = destination.icon,
-                        label = destination.label,
+                        icon = item.icon,
+                        label = item.label,
                         selected = safeSelectedIndex == index,
                         onClick = { mainState.animateToPage(index) }
                     )
@@ -186,35 +203,45 @@ fun BoxScope.BottomBarMiuix(
             }
         }
     } else {
-        GlassNavigationBar(
-            items = destinations.map {
-                GlassNavigationItem(icon = it.icon, label = it.label, contentDescription = it.label)
-            },
-            selectedIndex = safeSelectedIndex,
-            onSelect = { mainState.animateToPage(it) },
-            backdrop = if (enableFloatingBottomBarBlur) backdrop else null,
-            modifier = modifier.align(Alignment.BottomCenter),
-        )
-    }
-}
+        val bottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() +
+            WindowInsets.captionBar.asPaddingValues().calculateBottomPadding() +
+            24.dp
 
-/** 底部渐进式模糊带：最底部最强，向上渐隐到完全清晰。 */
-@Composable
-private fun BoxScope.ProgressiveBottomBand(backdrop: LayerBackdrop, height: Dp) {
-    val surface = colorScheme.surface
-    Box(
-        modifier = Modifier
-            .align(Alignment.BottomCenter)
-            .fillMaxWidth()
-            .height(height)
-            .progressiveTextureBlur(
-                backdrop = backdrop,
-                shape = RectangleShape,
-                blurRadius = 60f,
-                gradient = ProgressiveBlur.Bottom,
-                colors = BlurColors(
-                    blendColors = listOf(BlendColorEntry(color = surface.copy(alpha = 0.3f))),
-                ),
-            )
-    )
+        FloatingBottomBar(
+            modifier = modifier
+                .align(Alignment.BottomCenter)
+                .pointerInput(Unit) {
+                    detectTapGestures { }
+                }
+                .padding(start = sideMargin, end = sideMargin, bottom = bottomPadding),
+            selectedIndex = safeSelectedIndex,
+            onSelected = { mainState.animateToPage(it) },
+            backdrop = backdrop,
+            tabsCount = items.size,
+            isBlurEnabled = enableFloatingBottomBarBlur
+        ) { activateTab ->
+            items.forEachIndexed { index, item ->
+                val destination = destinations[index]
+                FloatingBottomBarItem(
+                    selected = safeSelectedIndex == index,
+                    onClick = { activateTab(index) },
+                    modifier = Modifier.defaultMinSize(minWidth = itemMinWidth)
+                ) {
+                    Icon(
+                        imageVector = destination.icon,
+                        contentDescription = destination.label,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        text = destination.label,
+                        fontSize = 11.sp,
+                        lineHeight = 14.sp,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+    }
 }

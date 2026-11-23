@@ -1,4 +1,8 @@
 package io.github.univers629.millet.ui.screen
+import io.github.univers629.millet.ui.util.GlassOverlayListPopup
+import top.yukonga.miuix.kmp.glass.GlassDialog
+import top.yukonga.miuix.kmp.glass.GlassBottomSheet
+import io.github.univers629.millet.ui.util.PopupBackdropHolder
 import io.github.univers629.millet.ui.util.MilletTopAppBar
 import io.github.univers629.millet.ui.util.MilletSmallTopAppBar
 import io.github.univers629.millet.ui.util.BarIconButton
@@ -124,7 +128,7 @@ import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
-import top.yukonga.miuix.kmp.basic.ListPopupColumn
+import io.github.univers629.millet.ui.util.ListPopupColumn
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.PopupPositionProvider
 import top.yukonga.miuix.kmp.basic.PullToRefresh
@@ -146,7 +150,6 @@ import top.yukonga.miuix.kmp.icon.extended.MoreCircle
 import top.yukonga.miuix.kmp.icon.extended.Refresh
 import top.yukonga.miuix.kmp.overlay.OverlayBottomSheet
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
-import top.yukonga.miuix.kmp.overlay.OverlayListPopup
 import top.yukonga.miuix.kmp.theme.LocalDismissState
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
@@ -798,7 +801,7 @@ fun TombStatsScreenMiuix(
                                 tint = colorScheme.onSurface,
                             )
                         }
-                        OverlayListPopup(
+                        GlassOverlayListPopup(
                             show = showTopPopup,
                             popupPositionProvider = ListPopupDefaults.MenuPositionProvider,
                             alignment = PopupPositionProvider.Align.TopEnd,
@@ -2067,7 +2070,7 @@ private fun MethodologyDialog(
     show: Boolean,
     onDismiss: () -> Unit,
 ) {
-    OverlayDialog(
+    GlassDialog(backdrop = PopupBackdropHolder.current, 
         show = show,
         title = "这些数字怎么看",
         onDismissRequest = onDismiss,
@@ -2131,9 +2134,8 @@ private fun AppStatsDetailSheet(
     val navBottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() +
         WindowInsets.captionBar.asPaddingValues().calculateBottomPadding()
 
-    OverlayBottomSheet(
+    GlassBottomSheet(backdrop = PopupBackdropHolder.current, 
         show = app != null,
-        backgroundColor = colorScheme.surface,
         insideMargin = DpSize(16.dp, 0.dp),
         endAction = {
             val dismissState = LocalDismissState.current

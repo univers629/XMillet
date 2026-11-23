@@ -1,4 +1,7 @@
 package io.github.univers629.millet.ui.component
+import top.yukonga.miuix.kmp.glass.GlassDialog
+import top.yukonga.miuix.kmp.glass.GlassBottomSheet
+import io.github.univers629.millet.ui.util.PopupBackdropHolder
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -228,10 +231,9 @@ fun HookCheckSheetMiuix(
     // OverlayBottomSheet 的关闭动画由 DismissState 驱动，这里提前取出来供各按钮复用。
     val dismissState = LocalDismissState.current
 
-    OverlayBottomSheet(
+    GlassBottomSheet(backdrop = PopupBackdropHolder.current, 
         show = show,
         title = "运行环境与服务检测",
-        backgroundColor = colorScheme.surface,
         insideMargin = DpSize(16.dp, 8.dp),
         startAction = {
             IconButton(

@@ -193,7 +193,7 @@ fun ThemeSettingsScreenMiuix(
                             onCheckedChange = { themeState.updateEnableFloatingBottomBar(it) }
                         )
 
-                        SwitchPreference(
+                        GlassDropdownPreference(
                             startAction = {
                                 Icon(
                                     imageVector = Icons.Rounded.BlurOn,
@@ -204,34 +204,20 @@ fun ThemeSettingsScreenMiuix(
                                     tint = colorScheme.onBackground
                                 )
                             },
-                            title = "启用顶栏与底栏毛玻璃效果",
-                            summary = "开启 Miuix 实时背景模糊渲染 (textureBlur)",
-                            checked = themeState.enableBlur,
-                            onCheckedChange = { themeState.updateEnableBlur(it) }
+                            title = "顶栏与底栏背景模糊",
+                            summary = "高斯模糊为整块毛玻璃；渐进式模糊为 HyperOS 4 风格边缘渐隐，两者互斥",
+                            items = listOf("关闭", "高斯模糊", "渐进式模糊"),
+                            selectedIndex = when {
+                                !themeState.enableBlur -> 0
+                                themeState.enableProgressiveBlur -> 2
+                                else -> 1
+                            },
+                            onSelectedIndexChange = { idx ->
+                                themeState.updateEnableBlur(idx != 0)
+                                if (idx != 0) themeState.updateEnableProgressiveBlur(idx == 2)
+                            },
+                            backdrop = backdrop,
                         )
-
-                        AnimatedVisibility(
-                            visible = themeState.enableBlur,
-                            enter = fadeIn() + expandVertically(),
-                            exit = fadeOut() + shrinkVertically()
-                        ) {
-                            SwitchPreference(
-                                startAction = {
-                                    Icon(
-                                        imageVector = Icons.Rounded.Gradient,
-                                        contentDescription = null,
-                                        modifier = Modifier
-                                            .padding(end = 8.dp)
-                                            .size(24.dp),
-                                        tint = colorScheme.onBackground
-                                    )
-                                },
-                                title = "渐进式模糊",
-                                summary = "HyperOS 4 风格：所有顶栏与底栏背景从边缘向内渐隐模糊",
-                                checked = themeState.enableProgressiveBlur,
-                                onCheckedChange = { themeState.updateEnableProgressiveBlur(it) }
-                            )
-                        }
 
                         AnimatedVisibility(
                             visible = themeState.enableFloatingBottomBar,

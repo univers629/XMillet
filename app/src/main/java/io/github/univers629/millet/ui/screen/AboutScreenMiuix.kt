@@ -1,4 +1,7 @@
 package io.github.univers629.millet.ui.screen
+import top.yukonga.miuix.kmp.glass.GlassDialog
+import top.yukonga.miuix.kmp.glass.GlassBottomSheet
+import io.github.univers629.millet.ui.util.PopupBackdropHolder
 import io.github.univers629.millet.ui.util.MilletTopAppBar
 import io.github.univers629.millet.ui.util.MilletSmallTopAppBar
 import io.github.univers629.millet.ui.util.BarIconButton
@@ -821,7 +824,7 @@ fun AboutRepoScreenMiuix(
     }
 
     val activeResId = previewDonateResId
-    WindowDialog(
+    GlassDialog(backdrop = PopupBackdropHolder.current, 
         show = activeResId != null,
         modifier = Modifier.windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top)),
         title = "感谢支持",

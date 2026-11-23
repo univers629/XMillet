@@ -1,4 +1,8 @@
 package io.github.univers629.millet.ui.util
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import top.yukonga.miuix.kmp.blur.Backdrop
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
@@ -82,4 +86,12 @@ fun BlurredBar(
             content()
         }
     }
+}
+
+/**
+ * 全局弹窗 / 对话框 / 底部面板的背景采样源（根布局录制，不含弹窗自身）。
+ * 关闭背景模糊时为 null，Glass 组件回退为不透明底色。
+ */
+object PopupBackdropHolder {
+    var current by mutableStateOf<Backdrop?>(null)
 }

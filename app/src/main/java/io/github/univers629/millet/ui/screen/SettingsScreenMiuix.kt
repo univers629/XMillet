@@ -1,4 +1,7 @@
 package io.github.univers629.millet.ui.screen
+import top.yukonga.miuix.kmp.glass.GlassDialog
+import top.yukonga.miuix.kmp.glass.GlassBottomSheet
+import io.github.univers629.millet.ui.util.PopupBackdropHolder
 import top.yukonga.miuix.kmp.glass.GlassDropdownPreference
 import io.github.univers629.millet.ui.util.MilletTopAppBar
 import io.github.univers629.millet.ui.util.MilletSmallTopAppBar
@@ -729,7 +732,7 @@ fun SettingsScreenMiuix(
 
 @Composable
 private fun LoadingDialogMiuix(show: Boolean) {
-    WindowDialog(
+    GlassDialog(backdrop = PopupBackdropHolder.current, 
         show = show,
         content = {
             val navEventState = rememberNavigationEventState(NavigationEventInfo.None)
@@ -854,7 +857,7 @@ private fun SaveShareActionDialog(
         }
     }
 
-    OverlayDialog(
+    GlassDialog(backdrop = PopupBackdropHolder.current, 
         show = show,
         onDismissRequest = onDismissRequest,
         insideMargin = DpSize(0.dp, 0.dp),

@@ -1,4 +1,24 @@
 package io.github.univers629.millet.ui.util
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import top.yukonga.miuix.kmp.utils.MiuixPopupUtils.Companion.PopupLayout
+import top.yukonga.miuix.kmp.glass.GlassPopup
+import top.yukonga.miuix.kmp.glass.GlassPopupItem
+import kotlinx.coroutines.delay
 
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.runtime.Composable
@@ -103,4 +123,77 @@ fun BarIconButton(
     content: @Composable () -> Unit,
 ) {
     GlassIconButton(onClick = { if (enabled) onClick() }, modifier = modifier, content = content)
+}
+
+/**
+ * OS4 玻璃菜单：替代 OverlayListPopup，保留原调用签名（定位参数忽略，改由按钮右缘锚定）。
+ * 背景采样全局 [PopupBackdropHolder]，展开为边缘生长动画，菜单项用 [GlassPopupItem] 的按压反馈。
+ * 必须紧跟在触发按钮之后调用：这里先放一个 0 宽锚点记录按钮右缘。
+ */
+@Composable
+fun GlassOverlayListPopup(
+    show: Boolean,
+    popupPositionProvider: Any? = null,
+    alignment: Any? = null,
+    onDismissRequest: (() -> Unit)? = null,
+    content: @Composable () -> Unit,
+) {
+    val density = LocalDensity.current
+    var anchorBounds by remember { mutableStateOf(Rect.Zero) }
+    Box(
+        modifier = Modifier
+            .width(0.dp)
+            .height(40.dp)
+            .onGloballyPositioned { c ->
+                val b = c.boundsInWindow()
+                val w = with(density) { 40.dp.toPx() }
+                anchorBounds = Rect(b.left - w, b.top, b.left, b.bottom)
+            }
+    )
+    val mounted = remember { mutableStateOf(false) }
+    LaunchedEffect(show) {
+        if (show) {
+            mounted.value = true
+        } else if (mounted.value) {
+            delay(450)
+            mounted.value = false
+        }
+    }
+    if (!mounted.value) return
+    PopupLayout(
+        visible = mounted,
+        enableWindowDim = false,
+        enableBackHandler = false,
+        enterTransition = EnterTransition.None,
+        exitTransition = ExitTransition.None,
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            GlassPopup(
+                show = show,
+                onDismissRequest = { onDismissRequest?.invoke() },
+                anchorBounds = anchorBounds,
+                backdrop = PopupBackdropHolder.current,
+            ) {
+                content()
+            }
+        }
+    }
+}
+
+/** 玻璃菜单内的列容器（替代 Miuix ListPopupColumn，避免其固有尺寸测量与玻璃面板冲突）。 */
+@Composable
+fun ListPopupColumn(content: @Composable () -> Unit) {
+    Column { content() }
+}
+
+/** 带勾选态的玻璃菜单项（替代 DropdownImpl）。 */
+@Composable
+fun GlassMenuItem(
+    text: String,
+    isSelected: Boolean = false,
+    optionSize: Int = 1,
+    index: Int = 0,
+    onSelectedIndexChange: (Int) -> Unit,
+) {
+    GlassPopupItem(text = text, selected = isSelected, onClick = { onSelectedIndexChange(index) })
 }

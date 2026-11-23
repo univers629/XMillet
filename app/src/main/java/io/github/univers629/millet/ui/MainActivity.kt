@@ -1,4 +1,6 @@
 package io.github.univers629.millet.ui
+import androidx.compose.runtime.SideEffect
+import io.github.univers629.millet.ui.util.PopupBackdropHolder
 
 import android.content.ComponentName
 import android.content.Context
@@ -760,6 +762,11 @@ class MainActivity : ComponentActivity() {
             drawRect(surfaceColor)
             drawContent()
         }
+        val popupBackdrop = rememberLayerBackdrop {
+            drawRect(surfaceColor)
+            drawContent()
+        }
+        SideEffect { PopupBackdropHolder.current = if (enableBlur) popupBackdrop else null }
 
         // 根级 Miuix Scaffold 承载最外层 MiuixPopupHost，确保所有 Tab 的 Dialog / BottomSheet / ListPopup
         // 及其暗色遮罩统一渲染在 BottomBarMiuix 之上，且共享 insets 不重复叠加
@@ -807,7 +814,7 @@ class MainActivity : ComponentActivity() {
             }
 
             // 全局界面流转控制：严格对齐 HyperCeiler OS3 官方规范（enter_home_anim + provision_out_anim）
-            Box(modifier = Modifier.fillMaxSize()) {
+            Box(modifier = Modifier.fillMaxSize().then(if (enableBlur) Modifier.layerBackdrop(popupBackdrop) else Modifier)) {
                 AnimatedContent(
                     targetState = isProvisioned,
                     transitionSpec = {
