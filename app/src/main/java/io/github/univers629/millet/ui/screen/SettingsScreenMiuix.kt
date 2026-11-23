@@ -734,6 +734,7 @@ fun SettingsScreenMiuix(
 private fun LoadingDialogMiuix(show: Boolean) {
     GlassDialog(backdrop = PopupBackdropHolder.current, 
         show = show,
+        onDismissRequest = { },
         content = {
             val navEventState = rememberNavigationEventState(NavigationEventInfo.None)
             NavigationBackHandler(
