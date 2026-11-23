@@ -237,7 +237,8 @@ fun ProcessListScreenMiuix(
                         MiuixCapsuleSearchBar(
                             query = searchQuery,
                             onQueryChange = { searchQuery = it },
-                            placeholder = "搜索进程名称、包名或 PID/UID..."
+                            placeholder = "搜索进程名称、包名或 PID/UID...",
+                            horizontalPadding = 0.dp
                         )
                     }
 

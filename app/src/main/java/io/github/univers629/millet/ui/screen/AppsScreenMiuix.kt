@@ -370,6 +370,7 @@ internal fun MiuixCapsuleSearchBar(
     query: String,
     onQueryChange: (String) -> Unit,
     placeholder: String,
+    horizontalPadding: Dp = 12.dp,
 ) {
     BasicTextField(
         value = query,
@@ -384,7 +385,7 @@ internal fun MiuixCapsuleSearchBar(
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp)
+            .padding(horizontal = horizontalPadding)
             .padding(top = 8.dp, bottom = 4.dp)
             .heightIn(min = 45.dp)
             .background(colorScheme.surfaceContainerHigh, CircleShape),
