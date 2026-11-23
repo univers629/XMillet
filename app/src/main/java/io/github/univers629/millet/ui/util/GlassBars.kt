@@ -19,6 +19,7 @@ import top.yukonga.miuix.kmp.utils.MiuixPopupUtils.Companion.PopupLayout
 import top.yukonga.miuix.kmp.glass.GlassPopup
 import top.yukonga.miuix.kmp.glass.GlassPopupItem
 import kotlinx.coroutines.delay
+import kotlin.math.abs
 
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.runtime.Composable
@@ -109,7 +110,12 @@ fun MilletSmallTopAppBar(
     defaultWindowInsetsPadding = defaultWindowInsetsPadding,
 )
 
-/** 顶栏玻璃按钮（替代 IconButton，保留旧参数签名）。 */
+/** 最近一次点击的顶栏按钮边界（窗口坐标，已扣除外边距），供紧随其后的玻璃菜单锚定。 */
+internal object BarButtonAnchor {
+    var lastClicked: Rect = Rect.Zero
+}
+
+/** 顶栏玻璃按钮（替代 IconButton，保留旧参数签名）。点击时记录自身真实边界作为菜单锚点。 */
 @Composable
 fun BarIconButton(
     onClick: () -> Unit,
@@ -122,13 +128,24 @@ fun BarIconButton(
     minWidth: Dp = 0.dp,
     content: @Composable () -> Unit,
 ) {
-    GlassIconButton(onClick = { if (enabled) onClick() }, modifier = modifier, content = content)
+    val bounds = remember { arrayOf(Rect.Zero) }
+    GlassIconButton(
+        onClick = {
+            if (enabled) {
+                BarButtonAnchor.lastClicked = bounds[0]
+                onClick()
+            }
+        },
+        // 接在调用方 padding 之后：得到按钮本体边界（不含 end 边距，也不受按压缩放影响）。
+        modifier = modifier.onGloballyPositioned { bounds[0] = it.boundsInWindow() },
+        content = content,
+    )
 }
 
 /**
- * OS4 玻璃菜单：替代 OverlayListPopup，保留原调用签名（定位参数忽略，改由按钮右缘锚定）。
- * 背景采样全局 [PopupBackdropHolder]，展开为边缘生长动画，菜单项用 [GlassPopupItem] 的按压反馈。
- * 必须紧跟在触发按钮之后调用：这里先放一个 0 宽锚点记录按钮右缘。
+ * OS4 玻璃菜单：替代 OverlayListPopup，保留原调用签名（定位参数忽略）。
+ * 锚点取触发按钮的真实边界，弹出与收纳都以该按钮为原点；每次打开时锁定一次，收起沿用同一锚点。
+ * 必须紧跟在触发按钮之后调用：这里的 0 宽占位用于校验点击来源，并在无记录时兜底估算。
  */
 @Composable
 fun GlassOverlayListPopup(
@@ -139,17 +156,24 @@ fun GlassOverlayListPopup(
     content: @Composable () -> Unit,
 ) {
     val density = LocalDensity.current
-    var anchorBounds by remember { mutableStateOf(Rect.Zero) }
+    val slot = remember { arrayOf(Rect.Zero) }
     Box(
         modifier = Modifier
             .width(0.dp)
             .height(40.dp)
-            .onGloballyPositioned { c ->
-                val b = c.boundsInWindow()
-                val w = with(density) { 40.dp.toPx() }
-                anchorBounds = Rect(b.left - w, b.top, b.left, b.bottom)
-            }
+            .onGloballyPositioned { slot[0] = it.boundsInWindow() }
     )
+    val anchor = remember { arrayOf(Rect.Zero) }
+    val wasShown = remember { booleanArrayOf(false) }
+    if (show && !wasShown[0]) {
+        anchor[0] = resolveMenuAnchor(
+            clicked = BarButtonAnchor.lastClicked,
+            slot = slot[0],
+            fallbackSize = with(density) { 40.dp.toPx() },
+            tolerance = with(density) { 64.dp.toPx() },
+        )
+    }
+    wasShown[0] = show
     val mounted = remember { mutableStateOf(false) }
     LaunchedEffect(show) {
         if (show) {
@@ -171,13 +195,22 @@ fun GlassOverlayListPopup(
             GlassPopup(
                 show = show,
                 onDismissRequest = { onDismissRequest?.invoke() },
-                anchorBounds = anchorBounds,
+                anchorBounds = anchor[0],
                 backdrop = PopupBackdropHolder.current,
             ) {
                 content()
             }
         }
     }
+}
+
+/** 点击记录与占位相邻（同一按钮）时用真实边界，否则按占位左侧估算一个按钮。 */
+private fun resolveMenuAnchor(clicked: Rect, slot: Rect, fallbackSize: Float, tolerance: Float): Rect {
+    if (clicked == Rect.Zero) return Rect(slot.left - fallbackSize, slot.top, slot.left, slot.bottom)
+    if (slot == Rect.Zero) return clicked
+    val adjacent = abs(clicked.right - slot.left) <= tolerance &&
+        clicked.bottom > slot.top - tolerance && clicked.top < slot.bottom + tolerance
+    return if (adjacent) clicked else Rect(slot.left - fallbackSize, slot.top, slot.left, slot.bottom)
 }
 
 /** 玻璃菜单内的列容器（替代 Miuix ListPopupColumn，避免其固有尺寸测量与玻璃面板冲突）。 */

@@ -512,7 +512,7 @@ fun PolicyTemplateDetailScreenMiuix(
         actions = {
             if (!template.builtIn) {
                 val showTopPopup = remember { mutableStateOf(false) }
-                IconButton(
+                BarIconButton(
                     modifier = Modifier.padding(end = 12.dp),
                     onClick = { showTopPopup.value = true },
                     holdDownState = showTopPopup.value
