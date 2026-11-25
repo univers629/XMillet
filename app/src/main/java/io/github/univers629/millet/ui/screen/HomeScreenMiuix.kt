@@ -1,4 +1,7 @@
 package io.github.univers629.millet.ui.screen
+import io.github.univers629.millet.core.PrivilegeBackend
+import io.github.univers629.millet.core.PrivilegeState
+import io.github.univers629.millet.core.PrivilegedExecutor
 import io.github.univers629.millet.ui.util.GlassOverlayListPopup
 import io.github.univers629.millet.ui.util.MilletTopAppBar
 import io.github.univers629.millet.ui.util.MilletSmallTopAppBar
@@ -193,6 +196,7 @@ fun HomeScreenMiuix(
     var kernelReport by remember { mutableStateOf(PowerKeeperBinderClient.KernelFreezerReport()) }
     var kernelProbeGeneration by remember { mutableStateOf(0) }
     val frameworkState by XposedPrefsBridge.frameworkState.collectAsState()
+    val privilegeState by PrivilegedExecutor.state.collectAsState()
 
     // 应用全部已采集进程确认冻结时计入；主应用与双开分别统计，记账不替代快照。
     val frozenApps = remember(runningProcesses) {
@@ -254,14 +258,14 @@ fun HomeScreenMiuix(
                                                 when (idx) {
                                                     0 -> {
                                                         scope.launch {
-                                                            val granted = RootHelper.isRootGranted ||
-                                                                RootHelper.requestRoot(20_000L)
+                                                            PrivilegedExecutor.ensureReady(20_000L)
+                                                            val granted = PrivilegedExecutor.hasRootLevel()
                                                             val started = granted && SoftRebootHelper.softReboot()
                                                             withContext(Dispatchers.Main) {
                                                                 Toast.makeText(
                                                                     context,
                                                                     if (started) "正在软重启，系统服务将重新拉起"
-                                                                    else "软重启需要先授予 Root 权限",
+                                                                    else "软重启需要 Root 或以 root 运行的 Shizuku",
                                                                     Toast.LENGTH_SHORT
                                                                 ).show()
                                                             }
@@ -302,6 +306,7 @@ fun HomeScreenMiuix(
                 item {
                     StatusCardMiuix(
                         runtimeStatus = runtimeStatus,
+                        privilegeState = privilegeState,
                         onClick = onRefresh
                     )
                 }
@@ -347,10 +352,20 @@ fun HomeScreenMiuix(
                             onClick = onRefresh
                         )
                     }
+                } else if (!runtimeStatus.binderAlive && privilegeState.backend != PrivilegeBackend.NONE) {
+                    item {
+                        WarningCard(
+                            message = "降级模式（${privilegeState.backendLabel}）：XMillet 未在 LSPosed 中生效，冻结策略、唤醒拦截、Doze 增强等 Hook 功能不可用；" +
+                                "进程与冻结状态改由 ps / cgroup / dumpsys greezer 只读采集，省电策略「无限制」仍可写入。",
+                            level = WarningLevel.Notice,
+                            onClick = onRefresh
+                        )
+                    }
                 } else if (!runtimeStatus.binderAlive) {
                     item {
                         WarningCard(
-                            message = "XMillet 系统服务未连接。请确认已在 LSPosed 中勾选启用 XMillet（作用域：系统框架 + 电量与性能）并重启系统。",
+                            message = "XMillet 系统服务未连接。请确认已在 LSPosed 中勾选启用 XMillet（作用域：系统框架 + 电量与性能）并重启系统；" +
+                                "没有 LSPosed 时可在「设置 → 特权与降级模式」授权 Shizuku，使用只读监控。",
                             level = WarningLevel.Error,
                             onClick = onRefresh
                         )
@@ -429,17 +444,29 @@ fun HomeScreenMiuix(
 @Composable
 private fun StatusCardMiuix(
     runtimeStatus: PowerKeeperBinderClient.RuntimeStatusSnapshot,
+    privilegeState: PrivilegeState = PrivilegeState(),
     onClick: () -> Unit,
 ) {
     // 激活判据：Binder 已连上，且 system_server 侧冻结闸门已就绪（或 PowerKeeper 客户端已注册）。
     // 主进程与 system_server 的握手是异步的，任一信号成立即视为可用，避免握手时序导致的「未激活」误判。
     val isWorking = runtimeStatus.binderAlive && (runtimeStatus.greezeReady || runtimeStatus.powerKeeperConnected)
-    val workingText = if (isWorking) "工作中" else "未激活"
-    val workingMode = if (isWorking) "Greeze • PowerKeeper" else "服务未连接"
+    // 降级模式：模块未生效，但 Root / Shizuku 可用，只读面板与省电策略仍可用
+    val isDegraded = !isWorking && privilegeState.backend != PrivilegeBackend.NONE
+    val workingText = when {
+        isWorking -> "工作中"
+        isDegraded -> "降级模式"
+        else -> "未激活"
+    }
+    val workingMode = when {
+        isWorking -> "Greeze • PowerKeeper"
+        isDegraded -> "${privilegeState.backendLabel} • 只读监控"
+        else -> "服务未连接"
+    }
     // 徽标显示模块真实装上的点位数：旧版写死 "40 Hooks"，而实际规格数随版本增长，
     // 不同 ROM 还会跳过若干点位。未上报（旧模块/未连上）时显示「已就绪」而不是假数字。
     val installedHooks = runtimeStatus.installedHooks
     val hookBadgeLabel = when {
+        isDegraded -> "无 Hook"
         !isWorking -> "未就绪"
         installedHooks > 0 -> "$installedHooks Hooks"
         else -> "已就绪"
@@ -545,7 +572,7 @@ private fun StatusCardMiuix(
                         Spacer(Modifier.height(2.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = if (isWorking) "${BuildConfig.VERSION_NAME}(${BuildConfig.VERSION_CODE})" else "点击重新检测系统服务连接",
+                                text = if (isWorking || isDegraded) "${BuildConfig.VERSION_NAME}(${BuildConfig.VERSION_CODE})" else "点击重新检测系统服务连接",
                                 modifier = Modifier.weight(1f, fill = false),
                                 fontSize = 12.sp,
                                 color = when {

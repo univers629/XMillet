@@ -1,5 +1,6 @@
 package io.github.univers629.millet.ui.vm
 
+import io.github.univers629.millet.core.ShellProcessSnapshot
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.os.PowerManager
@@ -53,7 +54,9 @@ internal class AndroidAppProfileSystemBridge(
 
     override suspend fun scanAppProcesses(uid: Int): List<RootHelper.ProcessRawEntry>? =
         withContext(ioDispatcher) {
-            val snapshot = PowerKeeperBinderClient.queryProcessSnapshot() ?: return@withContext null
+            val snapshot = PowerKeeperBinderClient.queryProcessSnapshot()
+                ?: ShellProcessSnapshot.capture(appContext)
+                ?: return@withContext null
             RootHelper.sortProcessEntries(snapshot.entries.filter { it.uid == uid })
         }
 

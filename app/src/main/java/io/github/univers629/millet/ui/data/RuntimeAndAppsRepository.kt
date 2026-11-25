@@ -1,5 +1,6 @@
 package io.github.univers629.millet.ui.data
 
+import io.github.univers629.millet.core.ShellProcessSnapshot
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
@@ -163,7 +164,10 @@ internal class AndroidRuntimeEnvironmentSource(
     override suspend fun queryRunningProcesses(): List<RunningProcessUiModel>? =
         withContext(ioDispatcher) {
             val pm = appContext.packageManager
-            val snapshot = PowerKeeperBinderClient.queryProcessSnapshot() ?: return@withContext null
+            // 模块快照优先；模块未生效时退回 Root / Shizuku 的 ps + cgroup 降级快照
+            val snapshot = PowerKeeperBinderClient.queryProcessSnapshot()
+                ?: ShellProcessSnapshot.capture(appContext)
+                ?: return@withContext null
             val byPkgUid = LinkedHashMap<String, MutableList<RootHelper.ProcessRawEntry>>()
             for (raw in snapshot.entries) {
                 if (raw.packageName.isBlank()) continue

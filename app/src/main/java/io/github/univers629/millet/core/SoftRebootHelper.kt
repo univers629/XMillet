@@ -29,7 +29,8 @@ object SoftRebootHelper {
      * @return false 表示当前没有 Root 权限，调用方应提示用户先授权。
      */
     fun softReboot(): Boolean {
-        if (!RootHelper.isRootGranted) return false
+        // stop / start 需要 root 级身份：Root，或以 root 运行的 Shizuku；adb 身份做不到
+        if (!PrivilegedExecutor.hasRootLevel()) return false
 
         val encoded = Base64.encodeToString(SCRIPT.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
         val command = buildString {
@@ -39,7 +40,7 @@ object SoftRebootHelper {
         }
 
         return runCatching {
-            RootHelper.execSu(command)
+            PrivilegedExecutor.exec(command)
             true
         }.getOrDefault(false)
     }

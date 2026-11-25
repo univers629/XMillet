@@ -4,3 +4,9 @@
 -keep,allowoptimization,allowobfuscation public class * extends io.github.libxposed.api.XposedModule {
     public <init>();
 }
+
+# Shizuku：ShizukuShell 通过反射调用私有的 Shizuku.newProcess
+-keepclassmembers class rikka.shizuku.Shizuku {
+    private static rikka.shizuku.ShizukuRemoteProcess newProcess(java.lang.String[], java.lang.String[], java.lang.String);
+}
+-keep class rikka.shizuku.ShizukuRemoteProcess { *; }

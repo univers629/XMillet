@@ -1,4 +1,8 @@
 package io.github.univers629.millet.ui.screen
+import top.yukonga.miuix.kmp.basic.BasicComponent
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import io.github.univers629.millet.core.PrivilegedExecutor
 import io.github.univers629.millet.ui.component.ProgressiveDialogLayout
 import io.github.univers629.millet.ui.component.FoldablePreferenceCard
 import io.github.univers629.millet.ui.component.FoldablePreferenceSection
@@ -360,6 +364,8 @@ fun SettingsContent(
                             onClick = onOpenAppearance
                         )
                     }
+
+                    PrivilegeSection(backdrop = backdrop)
 
                     SmallTitle(text = "全局策略")
                     Card(
@@ -1012,4 +1018,101 @@ private fun exportBackupToDownloads(context: Context): String {
         output.write(json.toByteArray(Charsets.UTF_8))
     } ?: error("无法写入下载文件")
     return fileName
+}
+
+
+/**
+ * 「特权与降级模式」：选择 Root / Shizuku 通道并显示 Shizuku 授权状态。
+ *
+ * 模块在 LSPosed 中生效时，所有功能走模块 IPC，这里的设置只影响兜底路径；
+ * 模块未生效时（降级模式），进程快照、省电策略写入、诊断包等都通过这里选择的通道执行。
+ */
+@Composable
+private fun PrivilegeSection(backdrop: top.yukonga.miuix.kmp.blur.Backdrop?) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val state by PrivilegedExecutor.state.collectAsState()
+    val modes = remember { io.github.univers629.millet.core.PrivilegeMode.entries }
+
+    // 进入设置页时刷新一次（用户可能刚在 Shizuku 里启动服务或授权）
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.withContext(Dispatchers.IO) { PrivilegedExecutor.refreshState() }
+    }
+
+    SmallTitle(text = "特权与降级模式")
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp)
+            .padding(bottom = 12.dp)
+    ) {
+        GlassDropdownPreference(
+            backdrop = backdrop,
+            startAction = {
+                Icon(
+                    imageVector = MiuixIcons.Glass.SecurityStatus,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .padding(end = 8.dp)
+                        .size(24.dp),
+                    tint = colorScheme.onBackground
+                )
+            },
+            title = "特权通道",
+            summary = "当前：${state.backendLabel}",
+            items = modes.map { it.label },
+            selectedIndex = state.mode.ordinal,
+            onSelectedIndexChange = { index ->
+                scope.launch(Dispatchers.IO) {
+                    PrivilegedExecutor.setMode(context, modes[index])
+                    // 选了含 Root 的模式但还没授权：顺手申请一次（Shizuku 授权在下面一项手动点）
+                    PrivilegedExecutor.ensureReady(timeoutMs = 30_000L)
+                }
+            }
+        )
+
+        ArrowPreference(
+            startAction = {
+                Icon(
+                    imageVector = MiuixIcons.Glass.AccessControl,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .padding(end = 8.dp)
+                        .size(24.dp),
+                    tint = colorScheme.onBackground
+                )
+            },
+            title = "Shizuku / Sui",
+            summary = state.shizukuSummary,
+            onClick = {
+                scope.launch {
+                    val now = kotlinx.coroutines.withContext(Dispatchers.IO) { PrivilegedExecutor.refreshState() }
+                    when {
+                        !now.shizukuRunning -> {
+                            val launch = context.packageManager
+                                .getLaunchIntentForPackage(PrivilegedExecutor.SHIZUKU_MANAGER_PACKAGE)
+                            if (launch != null) {
+                                runCatching { context.startActivity(launch) }
+                            } else {
+                                Toast.makeText(context, "未安装 Shizuku，或 Sui 服务未运行", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                        !now.shizukuGranted -> {
+                            if (!PrivilegedExecutor.requestShizukuPermission()) {
+                                Toast.makeText(context, "无法发起 Shizuku 授权", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                        else -> Toast.makeText(context, "Shizuku 已授权：${now.backendLabel}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        )
+
+        BasicComponent(
+            title = "降级模式说明",
+            summary = "未在 LSPosed 中启用 XMillet 时，冻结策略、唤醒与广播拦截、Doze 增强、查杀策略、" +
+                "墓碑统计等 Hook 功能不可用；进程列表与冻结状态改为只读采集，单应用「省电策略无限制」仍可写入。" +
+                "adb 身份的 Shizuku 不能软重启、不能读取云端配置库。",
+        )
+    }
 }

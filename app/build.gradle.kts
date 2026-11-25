@@ -111,6 +111,10 @@ dependencies {
     // 返回栈持久化（rememberNavBackStack 的 JSON 编解码）使用
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 
+    // Shizuku / Sui：模块未生效时的降级特权通道（adb 或 root 身份执行系统命令）
+    implementation("dev.rikka.shizuku:api:13.1.5")
+    implementation("dev.rikka.shizuku:provider:13.1.5")
+
     // 预测性返回开关需要反射 ApplicationInfo 的隐藏 API
     implementation("org.lsposed.hiddenapibypass:hiddenapibypass:6.1")
 

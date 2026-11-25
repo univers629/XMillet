@@ -6,6 +6,8 @@ import android.os.Build
 import android.system.Os
 import io.github.univers629.millet.BuildConfig
 import io.github.univers629.millet.core.Logger
+import io.github.univers629.millet.core.PrivilegeBackend
+import io.github.univers629.millet.core.PrivilegedExecutor
 import io.github.univers629.millet.core.RootHelper
 import io.github.univers629.millet.ipc.PowerKeeperBinderClient
 import io.github.univers629.millet.ui.BackupRestoreHelper
@@ -66,7 +68,7 @@ object BugreportHelper {
         bugreportDir.mkdirs()
 
         try {
-            val hasRoot = RootHelper.isRootGranted || RootHelper.requestRoot(timeoutMs = 15_000L)
+            val hasRoot = PrivilegedExecutor.ensureReady(timeoutMs = 15_000L) != PrivilegeBackend.NONE
 
             File(bugreportDir, "basic.txt").writeText(
                 buildBasicInfoText(hasRoot),
@@ -109,7 +111,9 @@ object BugreportHelper {
         appendLine("=== XMillet Diagnostic Report ===")
         appendLine("Timestamp: ${formatTimestamp()}")
         appendLine("AppVersion: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}, ${BuildConfig.BUILD_TYPE})")
-        appendLine("RootGranted: $hasRoot")
+        appendLine("RootGranted: ${RootHelper.isRootGranted}")
+        appendLine("PrivilegeBackend: ${PrivilegedExecutor.state.value.backendLabel} (mode=${PrivilegedExecutor.state.value.mode})")
+        appendLine("Shizuku: ${PrivilegedExecutor.state.value.shizukuSummary}")
         appendLine()
 
         appendLine("=== Device & ROM ===")
@@ -175,7 +179,7 @@ object BugreportHelper {
             getprop > "$dirPath/props.txt" 2>&1
             chmod 0644 "$dirPath"/* 2>/dev/null || true
         """.trimIndent()
-        RootHelper.execSu(script)
+        PrivilegedExecutor.exec(script, timeoutMs = 60_000L)
     }
 
     private fun collectFallbackDiagnostics(dir: File) {

@@ -57,10 +57,10 @@ object LsposedHelper {
      * @return true 表示已发出触发请求；框架未安装时系统不会给出可判定结果，因此不做存在性断言
      */
     fun openModuleList(context: Context): Boolean {
-        if (RootHelper.isRootGranted) {
-            // 与模块 action.sh 完全一致：以 shell 身份向 android 包投递密钥码广播
+        if (PrivilegedExecutor.isAvailable()) {
+            // 与模块 action.sh 完全一致：以 shell 身份向 android 包投递密钥码广播（Root / Shizuku 均可）
             val command = "am broadcast -a $secretCodeAction -d $SECRET_CODE android"
-            val output = runCatching { RootHelper.execSu(command) }.getOrDefault(emptyList())
+            val output = runCatching { PrivilegedExecutor.exec(command) }.getOrDefault(emptyList())
             if (output.any { it.contains("Broadcast completed", ignoreCase = true) }) return true
         }
 

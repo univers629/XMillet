@@ -3,6 +3,7 @@ package io.github.univers629.millet
 import android.app.Application
 import io.github.univers629.millet.core.PredictiveBackController
 import io.github.univers629.millet.core.PrefReader
+import io.github.univers629.millet.core.PrivilegedExecutor
 import io.github.univers629.millet.core.XposedPrefsBridge
 import io.github.univers629.millet.ui.di.AppUiContainer
 
@@ -20,6 +21,8 @@ class MilletApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         XposedPrefsBridge.install(this)
+        // Shizuku 降级通道：只注册 Binder 监听，不会弹任何授权框
+        PrivilegedExecutor.init(this)
         // 返回通道必须在本进程任何窗口创建前决定：ViewRootImpl 构造时读取该位。
         PredictiveBackController.applyPredictiveBackEnabled(
             this,

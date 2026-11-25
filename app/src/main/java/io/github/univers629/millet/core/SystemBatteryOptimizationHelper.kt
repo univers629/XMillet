@@ -14,8 +14,10 @@ import kotlinx.coroutines.withContext
  *   PowerKeeper userTable (bgControl) 以及 MILLET_NO_RESTRICT_APP 全链路协同写入。
  *
  * 优先走模块 IPC：system_server 里的模块直接调用上面几个内部入口，不需要 Root、也不会弹授权提示。
- * 只有模块没启用（Binder 拿不到）时，才退回 Root 脚本兜底 —— 那时把多条命令拼成一段脚本一次执行，
- * 避免 5～6 次授权请求。
+ * 只有模块没启用（Binder 拿不到）时，才退回 Root / Shizuku 脚本兜底（见 [PrivilegedExecutor]）——
+ * 那时把多条命令拼成一段脚本一次执行，避免 5～6 次授权请求。
+ * Shizuku 为 adb 身份时 PowerKeeper userTable 写不进去（缺 HIDDEN_MODE_PROVIDER），
+ * 但 deviceidle、appops 与 MILLET_NO_RESTRICT_APP 都能写，后者才是 Greezer 实际认的名单。
  */
 object SystemBatteryOptimizationHelper {
 
@@ -39,18 +41,16 @@ object SystemBatteryOptimizationHelper {
             return@withContext true
         }
 
-        // 2. 模块缺席：退回 Root 脚本
-        if (!RootHelper.isRootGranted) {
-            RootHelper.requestRoot()
-        }
+        // 2. 模块缺席：退回 Root / Shizuku 脚本
+        PrivilegedExecutor.ensureReady()
 
         val viaRoot = runCatching {
-            RootHelper.execSu(buildNoRestrictScript(packageName))
+            PrivilegedExecutor.exec(buildNoRestrictScript(packageName))
             updateMilletNoRestrictSetting(context, packageName, add = true)
             isInNoRestrictSetting(context, packageName)
         }.getOrDefault(false)
         if (!viaRoot) {
-            Logger.warn("写入系统省电策略失败（模块未接管且 Root 授权不可用）: $packageName")
+            Logger.warn("写入系统省电策略失败（模块未接管且 Root / Shizuku 均不可用）: $packageName")
         }
         viaRoot
     }
@@ -72,17 +72,15 @@ object SystemBatteryOptimizationHelper {
             return@withContext true
         }
 
-        if (!RootHelper.isRootGranted) {
-            RootHelper.requestRoot()
-        }
+        PrivilegedExecutor.ensureReady()
 
         val viaRoot = runCatching {
-            RootHelper.execSu(buildRestoreScript(packageName))
+            PrivilegedExecutor.exec(buildRestoreScript(packageName))
             updateMilletNoRestrictSetting(context, packageName, add = false)
             !isInNoRestrictSetting(context, packageName)
         }.getOrDefault(false)
         if (!viaRoot) {
-            Logger.warn("恢复系统省电策略失败（模块未接管且 Root 授权不可用）: $packageName")
+            Logger.warn("恢复系统省电策略失败（模块未接管且 Root / Shizuku 均不可用）: $packageName")
         }
         viaRoot
     }
@@ -135,7 +133,7 @@ object SystemBatteryOptimizationHelper {
             val changed = if (add) packages.add(packageName) else packages.remove(packageName)
             if (changed) {
                 val newValue = packages.joinToString(", ")
-                RootHelper.execSu("settings put system $SETTING_MILLET_NO_RESTRICT_APP \"$newValue\"")
+                PrivilegedExecutor.exec("settings put system $SETTING_MILLET_NO_RESTRICT_APP \"$newValue\"")
             }
         }
     }
